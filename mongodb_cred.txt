@@ -1,5 +1,0 @@
-username:amoghavaiyer_db_user
-
-password:QTuWfN2oYG37p7iS
-
-mongodb+srv://amoghavaiyer_db_user:QTuWfN2oYG37p7iS@cluster0.3a7dkye.mongodb.net/?appName=Cluster0
