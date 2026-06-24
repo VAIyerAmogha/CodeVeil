@@ -135,3 +135,7 @@ service-account.json
 *.bak
 *.old
 *.orig
+
+# credentials
+mogodb_cred.txt
+prompt.txt
