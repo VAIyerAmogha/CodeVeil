@@ -6,9 +6,9 @@
 
 ## CURRENT STATUS
 
-**Current task:** 2.6 complete
-**Last completed:** indexing_job.py, repositories.py
-**Next:** Task 3.1: Vector search + BM25 retrieve (Phase 3 Query Pipeline Setup)
+**Current task:** 3.3 complete
+**Last completed:** hybrid.py, context_builder.py
+**Next:** Task 3.4: Responder (Phase 3 Query Pipeline Setup)
 
 ---
 
@@ -21,6 +21,9 @@ _(append after each session)_
 - enricher.py
 - indexer.py
 - indexing_job.py, repositories.py
+- classifier.py
+- bm25_retriever.py, dense_retriever.py
+- hybrid.py, context_builder.py
 
 ---
 
@@ -40,6 +43,9 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-25: Implemented Groq API key round-robin pool — parses GROQ_API_KEYS to distribute loads across multiple keys, bypassing rate limits for larger repositories.
 2026-06-25: Ingestion pipeline launched via FastAPI BackgroundTasks — keeps API responsive while tracking progress entirely through MongoDB job documents.
 2026-06-25: Disabled LLM enrichment by default (toggleable via ENABLE_ENRICHMENT in config) and added MongoDB caching (keyed by source_code sha256) to completely eliminate Groq rate limit issues during initial demo ingestions.
+2026-06-25: default to "explanation" on classifier failure — ensures robust query classification fallback if Groq API rate limits or failures occur.
+2026-06-25: BM25 index cached in memory after first load — prevents unnecessary disk reads/unpickling overhead for subsequent queries on the same repository.
+2026-06-25: cross-encoder singleton, callee expansion depth 2 for architectural — avoids recreation overhead and provides deep contextual code flow for architectural queries.
 
 ---
 

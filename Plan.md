@@ -348,9 +348,9 @@ Auth and database connections come last. Build the working product core first.
 | 2.4 Enricher | DONE |
 | 2.5 Indexer | DONE |
 | 2.6 Job tracking + routes | DONE |
-| 3.1 Classifier | TODO |
-| 3.2 BM25 + dense retrievers | TODO |
-| 3.3 Hybrid + context builder | TODO |
+| 3.1 Classifier | DONE |
+| 3.2 BM25 + dense retrievers | DONE |
+| 3.3 Hybrid + context builder | DONE |
 | 3.4 Responder | TODO |
 | 3.5 Query service + endpoint | TODO |
 | 4.1 Auth pages + stores | TODO |
