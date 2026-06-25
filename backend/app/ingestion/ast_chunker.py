@@ -29,7 +29,7 @@ def get_parser(language: str) -> Optional[Parser]:
 
 def extract_node_text(node: Node, source_bytes: bytes) -> str:
     """Extract the exact text of a node from the source bytes."""
-    return source_bytes[node.start_byte:node.end_byte].decode('utf-8')
+    return source_bytes[node.start_byte:node.end_byte].decode('utf-8', errors='replace')
 
 def extract_python_chunks(root_node: Node, source_bytes: bytes, file_path: str) -> List[Dict[str, Any]]:
     """Extract chunks from a Python syntax tree."""

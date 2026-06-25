@@ -12,7 +12,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-routers = []
+from app.api.routes.repositories import router as repositories_router
+routers = [repositories_router]
 
 for router in routers:
     app.include_router(router)

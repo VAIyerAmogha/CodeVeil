@@ -96,11 +96,14 @@ Auth and database connections come last. Build the working product core first.
 
 ### 2.4 Enricher
 **Files:** `ingestion/enricher.py`
-- Groq singleton (llama-3.1-8b-instant)
+- AsyncGroq client pool (llama-3.1-8b-instant) with round-robin key cycling
+- Concurrent processing using asyncio.gather with rate limiting
 - Only for function chunks with no docstring → one-line summary
+- Caching: MongoDB summaries_cache by sha256 to avoid redundant API calls
+- Toggle: Disabled by default (ENABLE_ENRICHMENT=False) to prevent rate limit bottlenecks during demo
 - On error: return None, don't crash
 
-**✓ Done when:** Generates summaries for undocumented functions.
+**✓ Done when:** Generates summaries for undocumented functions (when enabled) and caches them. [DONE]
 
 ---
 
@@ -342,9 +345,9 @@ Auth and database connections come last. Build the working product core first.
 | 2.1 Cloner + language detector | DONE |
 | 2.2 AST chunker Python+JS | DONE |
 | 2.3 AST chunker TS+Java+fallback | DONE |
-| 2.4 Enricher | TODO |
-| 2.5 Indexer | TODO |
-| 2.6 Job tracking + routes | TODO |
+| 2.4 Enricher | DONE |
+| 2.5 Indexer | DONE |
+| 2.6 Job tracking + routes | DONE |
 | 3.1 Classifier | TODO |
 | 3.2 BM25 + dense retrievers | TODO |
 | 3.3 Hybrid + context builder | TODO |

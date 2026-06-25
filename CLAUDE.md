@@ -6,9 +6,9 @@
 
 ## CURRENT STATUS
 
-**Current task:** 2.3 complete  
-**Last completed:** ast_chunker.py updated (TS+Java), fallback_chunker.py  
-**Next:** 2.4
+**Current task:** 2.6 complete
+**Last completed:** indexing_job.py, repositories.py
+**Next:** Task 3.1: Vector search + BM25 retrieve (Phase 3 Query Pipeline Setup)
 
 ---
 
@@ -18,6 +18,9 @@ _(append after each session)_
 - Added backend skeleton files: main.py, config.py, .env, requirements.txt
 - ast_chunker.py (Python + JS)
 - ast_chunker.py updated (TS+Java), fallback_chunker.py
+- enricher.py
+- indexer.py
+- indexing_job.py, repositories.py
 
 ---
 
@@ -31,6 +34,12 @@ _(format: YYYY-MM-DD: decision — reason)_
 
 2026-06-24: FastAPI chosen, CORS open for dev — aligns backend skeleton with the locked stack and keeps local frontend integration unblocked.
 2026-06-25: tree-sitter node positions used for exact line numbers — ensures functions are never cut mid-body as per hard rules.
+2026-06-25: Groq singleton at module level, errors return None — prevents API client recreation overhead and ensures ingestion pipeline never crashes on LLM failure.
+2026-06-25: BM25 persisted to /tmp/codeveil_bm25, embedding singleton at module level — ensures embedding model is only loaded once and BM25 index is cached locally.
+2026-06-25: Migrated enrich_chunks to AsyncGroq with asyncio.gather and exponential backoff — allows concurrent processing of medium-level repos without triggering rate limits, greatly improving speed.
+2026-06-25: Implemented Groq API key round-robin pool — parses GROQ_API_KEYS to distribute loads across multiple keys, bypassing rate limits for larger repositories.
+2026-06-25: Ingestion pipeline launched via FastAPI BackgroundTasks — keeps API responsive while tracking progress entirely through MongoDB job documents.
+2026-06-25: Disabled LLM enrichment by default (toggleable via ENABLE_ENRICHMENT in config) and added MongoDB caching (keyed by source_code sha256) to completely eliminate Groq rate limit issues during initial demo ingestions.
 
 ---
 
