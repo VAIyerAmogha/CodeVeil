@@ -137,5 +137,5 @@ service-account.json
 *.orig
 
 # credentials
-mogodb_cred.txt
+mongodb_cred.txt
 prompt.txt
