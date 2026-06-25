@@ -18,4 +18,3 @@ python-jose[cryptography]
 httpx
 pytest
 pytest-asyncio
-pydantic

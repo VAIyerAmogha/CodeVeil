@@ -81,7 +81,7 @@ Auth and database connections come last. Build the working product core first.
 - tree-sitter extract functions, classes, docstrings as atomic units
 - Never cut mid-body · every chunk has: file_path, start_line, end_line, language, parent_class, function_name, chunk_type
 
-**✓ Done when:** Correct chunks + full metadata for .py and .js files.
+**✓ Done when:** Correct chunks + full metadata for .py and .js files. [DONE]
 
 ---
 
@@ -90,7 +90,7 @@ Auth and database connections come last. Build the working product core first.
 - Add TS + Java grammars
 - fallback_chunker: character split for unsupported langs ONLY — never for Python/JS/TS/Java
 
-**✓ Done when:** All 4 langs use AST. Unknown lang falls back.
+**✓ Done when:** All 4 langs use AST. Unknown lang falls back. [DONE]
 
 ---
 
@@ -339,9 +339,9 @@ Auth and database connections come last. Build the working product core first.
 | 1.2 DB singletons | DONE |
 | 1.3 DB models | DONE |
 | 1.4 Next.js + layout | DONE |
-| 2.1 Cloner + language detector | TODO |
-| 2.2 AST chunker Python+JS | TODO |
-| 2.3 AST chunker TS+Java+fallback | TODO |
+| 2.1 Cloner + language detector | DONE |
+| 2.2 AST chunker Python+JS | DONE |
+| 2.3 AST chunker TS+Java+fallback | DONE |
 | 2.4 Enricher | TODO |
 | 2.5 Indexer | TODO |
 | 2.6 Job tracking + routes | TODO |

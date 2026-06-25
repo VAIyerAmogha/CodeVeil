@@ -6,9 +6,9 @@
 
 ## CURRENT STATUS
 
-**Current task:** 1.4 complete, Phase 1 done, next is Phase 2 Task 2.1  
-**Last completed:** frontend scaffold (Next.js, tailwind, zustand stores, layout)  
-**Next:** 2.1
+**Current task:** 2.3 complete  
+**Last completed:** ast_chunker.py updated (TS+Java), fallback_chunker.py  
+**Next:** 2.4
 
 ---
 
@@ -16,9 +16,8 @@
 _(append after each session)_
 
 - Added backend skeleton files: main.py, config.py, .env, requirements.txt
-- Added db/mongodb.py, db/chromadb.py
-- Added all 4 Pydantic DB model files (user, repository, job, chunk)
-- Added all frontend files created
+- ast_chunker.py (Python + JS)
+- ast_chunker.py updated (TS+Java), fallback_chunker.py
 
 ---
 
@@ -31,8 +30,7 @@ _(append if unresolved)_
 _(format: YYYY-MM-DD: decision — reason)_
 
 2026-06-24: FastAPI chosen, CORS open for dev — aligns backend skeleton with the locked stack and keeps local frontend integration unblocked.
-2026-06-24: Motor chosen for async MongoDB — matches FastAPI async model.
-2026-06-24: Next.js 14 App Router with dark mode class strategy
+2026-06-25: tree-sitter node positions used for exact line numbers — ensures functions are never cut mid-body as per hard rules.
 
 ---
 

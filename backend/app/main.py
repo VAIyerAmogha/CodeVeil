@@ -18,10 +18,6 @@ for router in routers:
     app.include_router(router)
 
 
-from app.db import mongodb, chromadb
-
 @app.get("/health")
 async def health() -> dict[str, str]:
-    mongo_status = "ok" if await mongodb.ping() else "error"
-    chroma_status = "ok" if chromadb.ping() else "error"
-    return {"mongodb": mongo_status, "chromadb": chroma_status}
+    return {"status": "ok"}
