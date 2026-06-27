@@ -70,18 +70,18 @@ export default function RepositoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black p-6 md:p-10">
+      <div className="min-h-screen bg-transparent p-6 md:p-10">
         <div className="max-w-5xl mx-auto">
           {/* Header Skeleton */}
-          <div className="h-20 bg-zinc-900 rounded-lg animate-pulse mb-6 border border-zinc-800"></div>
+          <div className="h-20 glass-panel rounded-lg animate-pulse mb-6 border border-green-500/20"></div>
           {/* Stats Skeleton */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-24 bg-zinc-900 rounded-lg animate-pulse border border-zinc-800"></div>
+              <div key={i} className="h-24 glass-panel rounded-lg animate-pulse border border-green-500/20"></div>
             ))}
           </div>
           {/* Summary Skeleton */}
-          <div className="h-40 bg-zinc-900 rounded-xl animate-pulse border border-zinc-800 mb-8"></div>
+          <div className="h-40 glass-panel rounded-xl animate-pulse border border-green-500/20 mb-8"></div>
         </div>
       </div>
     );
@@ -89,9 +89,9 @@ export default function RepositoryPage() {
 
   if (error || !repo) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-2xl font-semibold text-red-400 mb-4">{error || 'Repository not found'}</h2>
-        <Link href="/dashboard" className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors">
+        <Link href="/dashboard" className="px-6 py-2 bg-green-900/20 border-green-500/20 hover:bg-green-800/40 text-green-50 rounded-lg transition-colors">
           Return to Dashboard
         </Link>
       </div>
@@ -99,7 +99,7 @@ export default function RepositoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6 md:p-10">
+    <div className="min-h-screen bg-transparent text-green-50 p-6 md:p-10">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-8">
           
@@ -112,7 +112,7 @@ export default function RepositoryPage() {
           </div>
           
           {/* Right Column */}
-          <div className="lg:col-span-2 flex flex-col mt-10 lg:mt-0 pt-8 lg:pt-0 border-t lg:border-t-0 border-zinc-800">
+          <div className="lg:col-span-2 flex flex-col mt-10 lg:mt-0 pt-8 lg:pt-0 border-t lg:border-t-0 border-green-500/20">
             <QueryInput 
               state={queryState} 
               queryType={queryType}

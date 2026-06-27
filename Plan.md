@@ -360,6 +360,7 @@ Auth and database connections come last. Build the working product core first.
 | 4.6 Query workspace | DONE |
 | 4.7 Interactive Code Viewer | DONE |
 | 4.8 Query History | DONE |
+| Design: Black + Green Glassmorphism | DONE |
 | 5.1 JWT + user model | IN PROGRESS |
 | 5.2 Auth routes | TODO |
 | 5.3 Wire auth | TODO |

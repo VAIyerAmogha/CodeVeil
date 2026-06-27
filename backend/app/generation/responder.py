@@ -128,3 +128,28 @@ def generate_answer(
     except Exception as e:
         logger.error(f"Groq API error in generate_answer: {e}")
         return fallback
+
+def generate_repo_summary(repo_name: str, description: str, languages: dict) -> str:
+    if not groq_client:
+        return "Summary not yet generated."
+        
+    prompt = f"Write a concise, 2-3 sentence technical summary of the repository '{repo_name}'.\n"
+    if description:
+        prompt += f"Description: {description}\n"
+    if languages:
+        prompt += f"Languages: {', '.join(languages.keys())}\n"
+        
+    try:
+        response = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a concise technical writer. Summarize the codebase objectively."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.1-8b-instant",
+            temperature=0.3,
+            max_tokens=150
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Error generating repo summary: {e}")
+        return "Summary not yet generated."

@@ -6,8 +6,8 @@
 
 ## CURRENT STATUS
 
-**Current task:** Phase 4 complete, Phase 5 next
-**Last completed:** Task 4.8: Query History + Polish
+**Current task:** Theme Overhaul complete
+**Last completed:** Black + Green Glassmorphic Design Update
 **Next:** Phase 5: Authentication
 
 ---
@@ -34,6 +34,7 @@ _(append after each session)_
 - Task 4.6 DONE — useQuery hook, QueryInput (Cmd+Enter shortcut), AnswerCard (react-markdown), CitationList (clickable pills), RetrievalStats (collapsible). Wired into repository/[id]/page.tsx.
 - Task 4.7 DONE — Monaco CodeViewer (vs-dark, yellow line highlight, revealLineInCenter), FilePathBreadcrumb, backend GET /file endpoint, api.getFileContent() added. Citation click opens inline code panel.
 - Phase 4 COMPLETE — Full frontend built across 8 tasks. Landing page, dashboard, indexing flow, repo detail, query workspace (react-markdown, Cmd+Enter), Monaco code viewer (yellow highlight, revealLineInCenter), query history. Two-column layout. Loading skeletons + error states on all components. Production build passes. tsc clean.
+- Design Update — Complete theme overhaul to Black + Green with Glassmorphic effects. Added persistent Navbar and Footer navigation. Sleek hover animations applied across all components.
 
 ---
 

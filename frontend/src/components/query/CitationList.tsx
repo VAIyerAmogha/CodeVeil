@@ -11,9 +11,9 @@ export default function CitationList({ citations, onCitationClick }: CitationLis
 
   return (
     <div className="mb-6">
-      <h4 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+      <h4 className="text-sm font-medium text-green-100/60 mb-3 flex items-center gap-2">
         Sources
-        <span className="bg-zinc-800 text-zinc-300 text-xs rounded-full px-2 py-0.5">
+        <span className="bg-green-900/20 border-green-500/20 text-green-100/80 text-xs rounded-full px-2 py-0.5">
           {citations.length}
         </span>
       </h4>
@@ -26,7 +26,7 @@ export default function CitationList({ citations, onCitationClick }: CitationLis
             <button
               key={`${citation.chunk_id}-${idx}`}
               onClick={() => onCitationClick(citation)}
-              className="bg-zinc-800 hover:bg-zinc-700 rounded px-3 py-1 text-sm font-mono text-green-400 cursor-pointer transition-colors border border-transparent hover:border-green-500/30"
+              className="bg-green-900/20 border-green-500/20 hover:bg-green-800/40 rounded px-3 py-1 text-sm font-mono text-green-400 cursor-pointer transition-colors border border-transparent hover:border-green-500/30"
             >
               [{filename}:{citation.line}]
             </button>

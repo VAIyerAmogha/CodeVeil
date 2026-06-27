@@ -9,7 +9,7 @@ export default function FilePathBreadcrumb({ filePath, repoName }: FilePathBread
   const parts = filePath.split('/').filter(Boolean);
   
   return (
-    <div className="font-mono text-sm text-zinc-400 flex items-center flex-wrap">
+    <div className="font-mono text-sm text-green-100/60 flex items-center flex-wrap">
       <span>{repoName}</span>
       {parts.map((part, index) => (
         <React.Fragment key={index}>

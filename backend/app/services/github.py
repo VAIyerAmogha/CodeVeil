@@ -40,6 +40,7 @@ def fetch_repo_metadata(github_url: str) -> Dict[str, Any]:
     return {
         "owner": repo_data.get("owner", {}).get("login"),
         "repo_name": repo_data.get("name"),
+        "description": repo_data.get("description"),
         "stars": repo_data.get("stargazers_count", 0),
         "forks": repo_data.get("forks_count", 0),
         "primary_language": repo_data.get("language"),

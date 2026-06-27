@@ -7,10 +7,10 @@ export function Sidebar() {
         <h1 className="text-primary text-2xl font-bold font-inter">CodeVeil</h1>
       </div>
       <nav className="flex-1 p-4 flex flex-col gap-2">
-        <Link href="/dashboard" className="text-gray-300 hover:text-white hover:bg-gray-800 px-3 py-2 rounded-md transition-colors">
+        <Link href="/dashboard" className="text-gray-300 hover:text-green-50 hover:bg-gray-800 px-3 py-2 rounded-md transition-colors">
           Dashboard
         </Link>
-        <Link href="/profile" className="text-gray-300 hover:text-white hover:bg-gray-800 px-3 py-2 rounded-md transition-colors">
+        <Link href="/profile" className="text-gray-300 hover:text-green-50 hover:bg-gray-800 px-3 py-2 rounded-md transition-colors">
           Profile
         </Link>
       </nav>

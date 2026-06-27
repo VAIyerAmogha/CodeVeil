@@ -44,14 +44,14 @@ export default function IndexingForm() {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://github.com/owner/repo"
-          className="flex-1 bg-zinc-900 border border-green-500/30 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 rounded-lg px-4 py-3 text-white placeholder:text-zinc-600 transition-colors"
+          className="flex-1 glass-panel border border-green-500/30 focus:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 rounded-lg px-4 py-3 text-green-50 placeholder:text-zinc-600 transition-colors"
           required
           disabled={state === 'submitting'}
         />
         <button
           type="submit"
           disabled={state === 'submitting'}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[180px]"
+          className="bg-green-600 hover:bg-green-500 text-green-50 font-medium px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[180px]"
         >
           {state === 'submitting' ? (
             <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>

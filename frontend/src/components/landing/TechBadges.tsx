@@ -15,7 +15,7 @@ export default function TechBadges() {
       {badges.map((badge) => (
         <span
           key={badge}
-          className="bg-zinc-800 text-zinc-300 text-xs rounded-full px-3 py-1 font-medium"
+          className="bg-green-900/20 border-green-500/20 text-green-100/80 text-xs rounded-full px-3 py-1 font-medium"
         >
           {badge}
         </span>

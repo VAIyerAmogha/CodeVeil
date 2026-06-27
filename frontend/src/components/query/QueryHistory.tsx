@@ -33,27 +33,27 @@ export default function QueryHistory({ repoId, onSelect }: QueryHistoryProps) {
   }, [repoId]);
 
   const getBadgeColor = (type: string) => {
-    if (type === 'lookup') return 'bg-blue-500/20 text-blue-400';
+    if (type === 'lookup') return 'bg-emerald-500/20 text-emerald-400';
     if (type === 'explanation') return 'bg-purple-500/20 text-purple-400';
     if (type === 'architectural') return 'bg-orange-500/20 text-orange-400';
-    return 'bg-zinc-500/20 text-zinc-400';
+    return 'bg-zinc-500/20 text-green-100/60';
   };
 
   if (error) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mt-6">
-        <h4 className="text-zinc-400 text-sm font-medium mb-2">Recent Queries</h4>
+      <div className="glass-panel border border-green-500/20 rounded-lg p-4 mt-6">
+        <h4 className="text-green-100/60 text-sm font-medium mb-2">Recent Queries</h4>
         <div className="text-red-400 text-sm">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mt-6">
-      <h4 className="text-zinc-400 text-sm font-medium mb-3 flex items-center gap-2">
+    <div className="glass-panel border border-green-500/20 rounded-lg p-4 mt-6">
+      <h4 className="text-green-100/60 text-sm font-medium mb-3 flex items-center gap-2">
         Recent Queries
         {!loading && queries.length > 0 && (
-          <span className="bg-zinc-800 text-zinc-300 text-xs rounded-full px-2 py-0.5">
+          <span className="bg-green-900/20 border-green-500/20 text-green-100/80 text-xs rounded-full px-2 py-0.5">
             {queries.length}
           </span>
         )}
@@ -62,11 +62,11 @@ export default function QueryHistory({ repoId, onSelect }: QueryHistoryProps) {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-14 bg-zinc-800 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-14 bg-green-900/20 border-green-500/20 rounded-lg animate-pulse"></div>
           ))}
         </div>
       ) : queries.length === 0 ? (
-        <div className="text-zinc-500 text-sm py-4 text-center border border-dashed border-zinc-800 rounded-lg">
+        <div className="text-green-100/40 text-sm py-4 text-center border border-dashed border-green-500/20 rounded-lg">
           No queries yet — ask your first question below
         </div>
       ) : (
@@ -75,7 +75,7 @@ export default function QueryHistory({ repoId, onSelect }: QueryHistoryProps) {
             <div 
               key={q.id}
               onClick={() => onSelect(q)}
-              className="hover:bg-zinc-800 rounded-lg p-3 cursor-pointer transition-colors border border-transparent hover:border-zinc-700"
+              className="hover:bg-green-900/20 border-green-500/20 rounded-lg p-3 cursor-pointer transition-colors border border-transparent hover:border-green-500/30"
             >
               <div className="text-sm text-zinc-200 font-medium mb-1 truncate">
                 {q.question.length > 60 ? q.question.substring(0, 60) + '...' : q.question}
@@ -84,7 +84,7 @@ export default function QueryHistory({ repoId, onSelect }: QueryHistoryProps) {
                 <span className={`text-xs px-2 py-0.5 rounded capitalize ${getBadgeColor(q.query_type)}`}>
                   {q.query_type}
                 </span>
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-green-100/40">
                   {formatDate(q.created_at)}
                 </span>
               </div>

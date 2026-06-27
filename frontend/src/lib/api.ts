@@ -67,3 +67,9 @@ export async function getQueries(repo_id: string): Promise<Query[]> {
 export async function getFileContent(repo_id: string, file_path: string): Promise<{ content: string; language: string }> {
   return fetchWithAuth<{ content: string; language: string }>(`/repositories/${repo_id}/file?path=${encodeURIComponent(file_path)}`);
 }
+
+export async function deleteRepo(repo_id: string): Promise<void> {
+  return fetchWithAuth<void>(`/repositories/${repo_id}`, {
+    method: 'DELETE',
+  });
+}

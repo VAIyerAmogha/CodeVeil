@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 export default function StatusBadge({ status }: StatusBadgeProps) {
   const styles: Record<IndexingStatus, string> = {
     pending: 'bg-yellow-500/20 text-yellow-400',
-    running: 'bg-blue-500/20 text-blue-400 animate-pulse',
+    running: 'bg-emerald-500/20 text-emerald-400 animate-pulse',
     complete: 'bg-green-500/20 text-green-400',
     failed: 'bg-red-500/20 text-red-400',
   };

@@ -19,9 +19,9 @@ export default function FeatureGrid() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
       {features.map((feature, idx) => (
-        <div key={idx} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex flex-col items-start text-left shadow-lg">
+        <div key={idx} className="glass-panel border border-green-500/20 rounded-xl p-6 flex flex-col items-start text-left shadow-lg">
           <h3 className="text-xl font-semibold text-zinc-100 mb-3">{feature.title}</h3>
-          <p className="text-zinc-400 text-sm leading-relaxed">{feature.description}</p>
+          <p className="text-green-100/60 text-sm leading-relaxed">{feature.description}</p>
         </div>
       ))}
     </div>

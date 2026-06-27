@@ -74,12 +74,12 @@ export default function CodeViewer({ filePath, repoId, repoName = "Repository", 
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-6 flex flex-col shadow-2xl mt-8">
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800">
+    <div className="glass-panel border border-green-500/20 rounded-xl overflow-hidden mb-6 flex flex-col shadow-2xl mt-8">
+      <div className="flex items-center justify-between px-4 py-3 bg-transparent/60 border-b border-green-500/20">
         <FilePathBreadcrumb filePath={filePath} repoName={repoName} />
         <button 
           onClick={onClose}
-          className="text-zinc-400 hover:text-white transition-colors"
+          className="text-green-100/60 hover:text-green-50 transition-colors"
           title="Close viewer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,16 +90,16 @@ export default function CodeViewer({ filePath, repoId, repoName = "Repository", 
       
       <div className="relative" style={{ height: '500px' }}>
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
+          <div className="absolute inset-0 flex items-center justify-center glass-panel z-10">
             <div className="flex flex-col items-center">
               <span className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></span>
-              <span className="text-zinc-400 text-sm font-medium">Loading file...</span>
+              <span className="text-green-100/60 text-sm font-medium">Loading file...</span>
             </div>
           </div>
         )}
         
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 z-10">
+          <div className="absolute inset-0 flex items-center justify-center glass-panel z-10">
             <div className="text-red-400 text-center">
               <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

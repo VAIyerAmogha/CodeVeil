@@ -25,10 +25,10 @@ export default function QueryInput({ state, queryType, error, onSubmit }: QueryI
   };
   
   const getBadgeColor = (type: string) => {
-    if (type === 'lookup') return 'bg-blue-500/20 text-blue-400';
+    if (type === 'lookup') return 'bg-emerald-500/20 text-emerald-400';
     if (type === 'explanation') return 'bg-purple-500/20 text-purple-400';
     if (type === 'architectural') return 'bg-orange-500/20 text-orange-400';
-    return 'bg-zinc-500/20 text-zinc-400';
+    return 'bg-zinc-500/20 text-green-100/60';
   };
 
   return (
@@ -40,18 +40,18 @@ export default function QueryInput({ state, queryType, error, onSubmit }: QueryI
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask a question about this repository..."
-          className="w-full bg-zinc-900 border border-zinc-700 focus:border-blue-500 rounded-lg p-4 pr-32 text-white resize-none outline-none transition-colors"
+          className="w-full glass-panel border border-green-500/30 focus:border-green-500 rounded-lg p-4 pr-32 text-green-50 resize-none outline-none transition-colors"
           rows={3}
           disabled={state === 'loading'}
         />
         <div className="absolute bottom-4 right-4 flex items-center gap-3">
-          <span className="text-zinc-500 text-xs">
+          <span className="text-green-100/40 text-xs">
             {question.length} chars
           </span>
           <button
             onClick={handleSubmit}
             disabled={state === 'loading' || !question.trim()}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-4 py-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="bg-green-600 hover:bg-green-500 text-green-50 font-medium px-4 py-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {state === 'loading' ? (
               <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></span>
@@ -63,7 +63,7 @@ export default function QueryInput({ state, queryType, error, onSubmit }: QueryI
       
       {state === 'answered' && queryType && (
         <div className="mt-2 flex items-center gap-2">
-          <span className="text-zinc-400 text-sm">Identified as:</span>
+          <span className="text-green-100/60 text-sm">Identified as:</span>
           <span className={`text-xs px-2 py-0.5 rounded capitalize ${getBadgeColor(queryType)}`}>
             {queryType}
           </span>

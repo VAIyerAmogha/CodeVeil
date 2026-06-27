@@ -88,8 +88,29 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
         raise HTTPException(status_code=500, detail="Database not initialized")
     
     existing_repo = await db["repositories"].find_one({"github_url": request.github_url})
+    
+    # Generate summary synchronously using executor or directly since it's an async route but the groq client call is sync in responder right now
+    from app.generation.responder import generate_repo_summary
+    loop = asyncio.get_event_loop()
+    ai_summary = await loop.run_in_executor(
+        None, 
+        generate_repo_summary, 
+        metadata.get("repo_name"), 
+        metadata.get("description", ""), 
+        metadata.get("languages", {})
+    )
+    
     if existing_repo:
         repo_id = existing_repo["repo_id"]
+        # Update existing repo with latest stats
+        await db["repositories"].update_one(
+            {"repo_id": repo_id},
+            {"$set": {
+                "stars": metadata.get("stars", 0),
+                "forks": metadata.get("forks", 0),
+                "ai_summary": ai_summary if ai_summary != "Summary not yet generated." else existing_repo.get("ai_summary")
+            }}
+        )
     else:
         repo_id = str(uuid.uuid4())
         repo_doc = {
@@ -98,7 +119,9 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
             "name": metadata.get("repo_name"),
             "owner": metadata.get("owner"),
             "stars": metadata.get("stars", 0),
-            "primary_language": metadata.get("primary_language")
+            "forks": metadata.get("forks", 0),
+            "primary_language": metadata.get("primary_language"),
+            "ai_summary": ai_summary
         }
         await db["repositories"].insert_one(repo_doc)
 
@@ -170,3 +193,29 @@ async def get_repository(repo_id: str) -> dict:
             "total_chunks": chunks_count
         }
     }
+
+@router.delete("/{repo_id}")
+async def delete_repository(repo_id: str) -> dict:
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+        
+    repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
+    if not repo_doc:
+        raise HTTPException(status_code=404, detail="Repository not found")
+        
+    # Delete from Mongo
+    await db["repositories"].delete_one({"repo_id": repo_id})
+    await db["jobs"].delete_many({"repo_id": repo_id})
+    await db["chunks"].delete_many({"repo_id": repo_id})
+    await db["queries"].delete_many({"repo_id": repo_id})
+    
+    # Delete from ChromaDB
+    from app.db.chromadb import get_chroma_client
+    client = get_chroma_client()
+    try:
+        client.delete_collection(name=repo_id)
+    except Exception:
+        pass
+        
+    return {"status": "success", "message": "Repository deleted"}
