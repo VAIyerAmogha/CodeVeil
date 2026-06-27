@@ -131,6 +131,7 @@ def generate_answer(
         }
     except Exception as e:
         logger.error(f"Groq API error in generate_answer: {e}")
+        fallback["answer"] = f"Unable to generate answer. Error: {str(e)}"
         return fallback
 
 def generate_repo_summary(repo_name: str, description: str, languages: dict) -> str:

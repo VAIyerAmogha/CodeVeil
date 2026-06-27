@@ -8,16 +8,29 @@ interface RetrievalStatsProps {
 export default function RetrievalStats({ scores }: RetrievalStatsProps) {
   if (!scores) return null;
 
-  // Simple heuristic for confidence score
+  // We use the Cross-Encoder logit score if available, otherwise fallback to dense score
+  const metricUsed = (scores.rerank_top !== undefined && scores.rerank_top !== 0) 
+    ? "Cross-Encoder Rerank" 
+    : "Dense Search";
+  
+  const rawScore = scores.rerank_top ?? scores.dense_top ?? 0;
+
   const calculateConfidence = (score: number) => {
-    if (!score) return 0;
-    if (score >= 0 && score <= 1) return Math.round(score * 100);
+    if (score === undefined || score === null || score === 0) return 0;
+    
+    // If score is a probability [0, 1]
+    if (score > 0 && score <= 1) return Math.round(score * 100);
     if (score > 1 && score <= 100) return Math.round(score);
-    // Sigmoid for logits
-    return Math.round((1 / (1 + Math.exp(-score))) * 100);
+    
+    // For MS-MARCO cross-encoder logits (typically -11 to 11)
+    // The raw logits are often very negative (e.g. -5 to -8) even for decent code matches.
+    // We shift the score by +6 and divide by 2 to make the sigmoid curve much more forgiving and desirable for the UI.
+    const adjustedScore = (score + 6) / 2;
+    const sigmoid = 1 / (1 + Math.exp(-adjustedScore));
+    return Math.max(5, Math.min(99, Math.round(sigmoid * 100))); // Clamp between 5% and 99%
   };
 
-  const confidence = calculateConfidence(scores.rerank_top ?? scores.dense_top ?? 0);
+  const confidence = calculateConfidence(rawScore);
   
   // Determine color based on confidence
   let colorClass = 'text-red-400 bg-red-400';
@@ -34,7 +47,10 @@ export default function RetrievalStats({ scores }: RetrievalStatsProps) {
     <div className={`mb-8 border ${borderClass} rounded-lg p-4 glass-panel flex flex-col md:flex-row md:items-center justify-between gap-4`}>
       <div className="flex-1">
         <div className="flex justify-between items-end mb-2">
-          <span className="text-sm font-medium text-green-100/80">Response Confidence</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-green-100/80">Response Confidence</span>
+            <span className="text-[10px] text-green-100/40 uppercase tracking-wider">{metricUsed}</span>
+          </div>
           <span className={`text-lg font-bold ${colorClass.split(' ')[0]}`}>{confidence}%</span>
         </div>
         

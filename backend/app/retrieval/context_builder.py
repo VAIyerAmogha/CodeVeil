@@ -85,6 +85,12 @@ async def build_context(
             if not new_callees:
                 break
 
+            # Limit total chunks to prevent hitting LLM context/rate limits
+            available_slots = 25 - len(final_chunks)
+            if available_slots <= 0:
+                break
+                
+            new_callees = new_callees[:available_slots]
             final_chunks.extend(new_callees)
             current_level_chunks = new_callees
 
