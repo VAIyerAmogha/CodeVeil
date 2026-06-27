@@ -166,7 +166,7 @@ Auth and database connections come last. Build the working product core first.
 - Input: question, context, query_type → Output: answer, citations[{file,line,chunk_id}], chunks_used
 - Handle Groq errors without crashing
 
-**✓ Done when:** Returns answer with inline citations for a test query.
+**✓ Done when:** Returns answer with inline citations for a test query. [DONE]
 
 ---
 
@@ -175,7 +175,7 @@ Auth and database connections come last. Build the working product core first.
 - query_service: orchestrate full pipeline, record latency_ms, save to MongoDB queries
 - `POST /query` → {repo_id, question} → calls query_service only, returns answer + citations + query_type + retrieval_scores + latency_ms
 
-**✓ Done when:** POST /query returns all fields. MongoDB has new query doc.
+**✓ Done when:** POST /query returns all fields. MongoDB has new query doc. [DONE]
 
 ---
 
@@ -351,8 +351,8 @@ Auth and database connections come last. Build the working product core first.
 | 3.1 Classifier | DONE |
 | 3.2 BM25 + dense retrievers | DONE |
 | 3.3 Hybrid + context builder | DONE |
-| 3.4 Responder | TODO |
-| 3.5 Query service + endpoint | TODO |
+| 3.4 Responder | DONE |
+| 3.5 Query service + endpoint | DONE |
 | 4.1 Auth pages + stores | TODO |
 | 4.2 Dashboard + indexing UI | TODO |
 | 4.3 Knowledge Hub | TODO |

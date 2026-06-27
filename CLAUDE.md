@@ -6,9 +6,9 @@
 
 ## CURRENT STATUS
 
-**Current task:** 3.3 complete
-**Last completed:** hybrid.py, context_builder.py
-**Next:** Task 3.4: Responder (Phase 3 Query Pipeline Setup)
+**Current task:** 3.5 complete, Phase 3 done
+**Last completed:** query_service.py, query.py
+**Next:** Task 4.1: Auth pages + stores (Phase 4 Full Frontend)
 
 ---
 
@@ -24,6 +24,8 @@ _(append after each session)_
 - classifier.py
 - bm25_retriever.py, dense_retriever.py
 - hybrid.py, context_builder.py
+- responder.py
+- query_service.py, query.py
 
 ---
 
@@ -46,6 +48,8 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-25: default to "explanation" on classifier failure — ensures robust query classification fallback if Groq API rate limits or failures occur.
 2026-06-25: BM25 index cached in memory after first load — prevents unnecessary disk reads/unpickling overhead for subsequent queries on the same repository.
 2026-06-25: cross-encoder singleton, callee expansion depth 2 for architectural — avoids recreation overhead and provides deep contextual code flow for architectural queries.
+2026-06-27: citation format [file:line], Groq errors return empty answer not crash — prevents UI crashes and enforces strict citation format for answers.
+2026-06-27: full pipeline latency recorded end-to-end — ensures performance monitoring accurately reflects total user wait time.
 
 ---
 
