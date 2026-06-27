@@ -29,8 +29,40 @@ export default function AnswerCard({ answer, latencyMs, queryType }: AnswerCardP
         </span>
       </div>
       
-      <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-transparent/60 prose-pre:border prose-pre:border-green-500/20">
-        <ReactMarkdown>{answer}</ReactMarkdown>
+      <div className="text-sm">
+        <ReactMarkdown
+          components={{
+            h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-green-300 mt-6 mb-4 border-b border-green-500/30 pb-2" {...props} />,
+            h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-green-300 mt-5 mb-3 border-b border-green-500/20 pb-1" {...props} />,
+            h3: ({node, ...props}) => <h3 className="text-lg font-medium text-emerald-300 mt-4 mb-2" {...props} />,
+            p: ({node, ...props}) => <p className="text-green-50/90 leading-relaxed mb-4" {...props} />,
+            ul: ({node, ...props}) => <ul className="list-disc list-outside ml-5 mb-4 text-green-50/80 marker:text-green-500" {...props} />,
+            ol: ({node, ...props}) => <ol className="list-decimal list-outside ml-5 mb-4 text-green-50/80 marker:text-green-500" {...props} />,
+            li: ({node, ...props}) => <li className="mb-1" {...props} />,
+            code: ({node, inline, className, children, ...props}: any) => {
+              const match = /language-(\w+)/.exec(className || '');
+              return !inline ? (
+                <div className="rounded-md border border-green-500/30 bg-black/60 overflow-hidden my-4">
+                  {match && <div className="bg-green-900/40 text-green-300 text-xs px-3 py-1 border-b border-green-500/30 font-mono uppercase">{match[1]}</div>}
+                  <pre className="p-4 overflow-x-auto text-sm text-green-100 font-mono">
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  </pre>
+                </div>
+              ) : (
+                <code className="bg-green-500/10 text-green-300 rounded px-1.5 py-0.5 text-sm font-mono border border-green-500/20" {...props}>
+                  {children}
+                </code>
+              )
+            },
+            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-green-500/50 pl-4 py-1 italic bg-green-900/10 text-green-200/80 my-4 rounded-r-md" {...props} />,
+            a: ({node, ...props}) => <a className="text-emerald-400 hover:text-emerald-300 hover:underline transition-colors" {...props} />,
+            strong: ({node, ...props}) => <strong className="font-semibold text-green-200" {...props} />
+          }}
+        >
+          {answer}
+        </ReactMarkdown>
       </div>
     </div>
   );

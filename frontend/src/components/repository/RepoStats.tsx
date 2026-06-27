@@ -13,22 +13,22 @@ export default function RepoStats({ repo, job }: RepoStatsProps) {
   const functionsExtracted = job?.progress?.functions_extracted || 0;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div className="glass-panel rounded-lg p-4 text-center border border-green-500/20">
-        <div className="text-2xl font-bold text-green-50">{totalChunks}</div>
-        <div className="text-xs text-green-100/60 mt-1">Total Chunks</div>
+    <div className="flex flex-col gap-3 mb-8">
+      <div className="glass-panel rounded-lg p-4 flex justify-between items-center border border-green-500/20">
+        <div className="text-sm font-medium text-green-100/60">Total Chunks</div>
+        <div className="text-lg font-bold text-green-50">{totalChunks}</div>
       </div>
-      <div className="glass-panel rounded-lg p-4 text-center border border-green-500/20">
-        <div className="text-2xl font-bold text-green-50">{filesProcessed} / {totalFiles}</div>
-        <div className="text-xs text-green-100/60 mt-1">Files Processed</div>
+      <div className="glass-panel rounded-lg p-4 flex justify-between items-center border border-green-500/20">
+        <div className="text-sm font-medium text-green-100/60">Files Processed</div>
+        <div className="text-lg font-bold text-green-50">{filesProcessed} / {totalFiles}</div>
       </div>
-      <div className="glass-panel rounded-lg p-4 text-center border border-green-500/20">
-        <div className="text-2xl font-bold text-green-50">{functionsExtracted}</div>
-        <div className="text-xs text-green-100/60 mt-1">Functions Extracted</div>
+      <div className="glass-panel rounded-lg p-4 flex justify-between items-center border border-green-500/20">
+        <div className="text-sm font-medium text-green-100/60">Functions Extracted</div>
+        <div className="text-lg font-bold text-green-50">{functionsExtracted}</div>
       </div>
-      <div className="glass-panel rounded-lg p-4 text-center border border-green-500/20">
-        <div className="text-2xl font-bold text-green-50 truncate px-2">{repo.primary_language || 'Unknown'}</div>
-        <div className="text-xs text-green-100/60 mt-1">Primary Language</div>
+      <div className="glass-panel rounded-lg p-4 flex justify-between items-center border border-green-500/20">
+        <div className="text-sm font-medium text-green-100/60">Primary Language</div>
+        <div className="text-lg font-bold text-green-50 px-2">{repo.primary_language || 'Unknown'}</div>
       </div>
     </div>
   );

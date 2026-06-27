@@ -25,6 +25,7 @@ export default function RepositoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
   const { 
     state: queryState, 
@@ -104,11 +105,35 @@ export default function RepositoryPage() {
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-8">
           
           {/* Left Column */}
-          <div className="lg:col-span-1 flex flex-col">
+          <div className="lg:col-span-1 flex flex-col h-[calc(100vh-80px)] sticky top-6">
             <RepoHeader repo={repo} />
-            <RepoStats repo={repo} job={job} />
-            <AISummary summary={repo.ai_summary} />
-            <QueryHistory repoId={id} onSelect={setResult} />
+            
+            {/* Tabs */}
+            <div className="flex border-b border-green-500/20 mt-4 mb-4">
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'overview' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
+              >
+                Overview
+              </button>
+              <button 
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'history' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
+              >
+                Query History
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 pb-10 scrollbar-thin scrollbar-thumb-green-500/20">
+              {activeTab === 'overview' ? (
+                <div className="space-y-6">
+                  <RepoStats repo={repo} job={job} />
+                  <AISummary summary={repo.ai_summary} />
+                </div>
+              ) : (
+                <QueryHistory repoId={id} onSelect={setResult} />
+              )}
+            </div>
           </div>
           
           {/* Right Column */}
