@@ -353,12 +353,14 @@ Auth and database connections come last. Build the working product core first.
 | 3.3 Hybrid + context builder | DONE |
 | 3.4 Responder | DONE |
 | 3.5 Query service + endpoint | DONE |
-| 4.1 Auth pages + stores | TODO |
-| 4.2 Dashboard + indexing UI | TODO |
-| 4.3 Knowledge Hub | TODO |
-| 4.4 Query workspace | TODO |
-| 4.5 History + eval + profile | TODO |
-| 5.1 JWT + user model | TODO |
+| 4.1 Auth pages + stores | DONE |
+| 4.2 Dashboard + indexing UI | DONE |
+| 4.3 Knowledge Hub | DONE |
+| 4.4 Query workspace | DONE |
+| 4.6 Query workspace | DONE |
+| 4.7 Interactive Code Viewer | DONE |
+| 4.8 Query History | DONE |
+| 5.1 JWT + user model | IN PROGRESS |
 | 5.2 Auth routes | TODO |
 | 5.3 Wire auth | TODO |
 | 6.1 MongoDB Atlas persistence | TODO |

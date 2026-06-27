@@ -1,15 +1,16 @@
 import { create } from 'zustand';
+import { Repository } from '../types/repository';
 
 interface RepoState {
-  currentRepoId: string | null;
-  jobId: string | null;
-  setRepo: (id: string | null) => void;
-  setJob: (id: string | null) => void;
+  repos: Repository[];
+  activeRepo: Repository | null;
+  setRepos: (repos: Repository[]) => void;
+  setActiveRepo: (repo: Repository | null) => void;
 }
 
 export const useRepoStore = create<RepoState>((set) => ({
-  currentRepoId: null,
-  jobId: null,
-  setRepo: (id) => set({ currentRepoId: id }),
-  setJob: (id) => set({ jobId: id }),
+  repos: [],
+  activeRepo: null,
+  setRepos: (repos) => set({ repos }),
+  setActiveRepo: (activeRepo) => set({ activeRepo }),
 }));

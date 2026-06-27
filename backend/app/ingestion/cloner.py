@@ -38,3 +38,21 @@ def clone_repository(github_url: str) -> str:
         raise CloneError(f"Git clone failed: {str(e)}")
     except Exception as e:
         raise CloneError(f"Unexpected error during clone: {str(e)}")
+
+def get_repo_path(github_url: str) -> str | None:
+    """Find the clone path for a given github_url if it exists."""
+    try:
+        owner, repo = validate_github_url(github_url)
+    except CloneError:
+        return None
+        
+    owner_dir = CLONE_BASE_DIR / owner
+    if not owner_dir.exists():
+        return None
+        
+    # Find the first directory matching repo_* (since we append a UUID)
+    for item in owner_dir.iterdir():
+        if item.is_dir() and item.name.startswith(f"{repo}_"):
+            return str(item.resolve())
+            
+    return None

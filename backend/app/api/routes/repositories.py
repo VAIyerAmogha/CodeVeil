@@ -8,11 +8,54 @@ from app.ingestion.cloner import validate_github_url, clone_repository, CloneErr
 from app.services.github import fetch_repo_metadata
 from app.db.mongodb import get_database
 from app.ingestion.indexer import index_repo
+from app.services.file_service import get_file_content
+from app.services.query_service import get_queries_for_repo
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
+@router.get("/{repo_id}/queries")
+async def get_repository_queries(repo_id: str) -> list[dict]:
+    return await get_queries_for_repo(repo_id)
+
+@router.get("/{repo_id}/file")
+async def get_repository_file(repo_id: str, path: str) -> dict:
+    return await get_file_content(repo_id, path)
+
 class IndexRequest(BaseModel):
     github_url: str
+
+@router.get("")
+async def get_all_repositories() -> list[dict]:
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+        
+    cursor = db["repositories"].find()
+    repos = await cursor.to_list(length=100)
+    
+    # Map _id and missing fields for frontend compatibility
+    for repo in repos:
+        repo["id"] = repo.get("repo_id") or str(repo["_id"])
+        repo["_id"] = str(repo["_id"])
+        
+        # Normalize fields
+        if "repo_name" not in repo and "name" in repo:
+            repo["repo_name"] = repo["name"]
+        
+        # Provide defaults for fields expected by frontend
+        repo.setdefault("owner", "Unknown")
+        repo.setdefault("repo_name", "Unknown Repo")
+        repo.setdefault("stars", 0)
+        repo.setdefault("forks", 0)
+        repo.setdefault("primary_language", "Unknown")
+        repo.setdefault("languages", {})
+        repo.setdefault("file_count", 0)
+        repo.setdefault("indexed_status", "complete")
+        repo.setdefault("last_indexed_at", None)
+        repo.setdefault("chroma_collection_id", None)
+        repo.setdefault("ai_summary", None)
+        
+    return repos
 
 async def _run_pipeline(job_id: str, repo_id: str, github_url: str) -> None:
     from app.services.indexing_job import set_status
@@ -76,6 +119,19 @@ async def get_repository_status(repo_id: str) -> dict:
         raise HTTPException(status_code=404, detail="No job found for this repository")
     
     job_doc["_id"] = str(job_doc["_id"])
+    job_doc["id"] = job_doc.get("job_id") or str(job_doc["_id"])
+    
+    if "progress" in job_doc:
+        p = job_doc["progress"]
+        p.setdefault("total_files", p.get("files_processed", 0))
+        
+        # If chunks_generated is 0 (due to SHA caching), fetch actual count from DB
+        chunks_count = await db["chunks"].count_documents({"repo_id": repo_id})
+        p["chunks_generated"] = p.get("chunks_generated", 0) or chunks_count
+        p["embeddings_created"] = p.get("embeddings_created", 0) or chunks_count
+        
+        p.setdefault("functions_extracted", p.get("chunks_generated", 0))
+        
     return job_doc
 
 @router.get("/{repo_id}")
@@ -89,6 +145,23 @@ async def get_repository(repo_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Repository not found")
         
     repo_doc["_id"] = str(repo_doc["_id"])
+    repo_doc["id"] = repo_doc.get("repo_id") or str(repo_doc["_id"])
+    
+    if "repo_name" not in repo_doc and "name" in repo_doc:
+        repo_doc["repo_name"] = repo_doc["name"]
+        
+    repo_doc.setdefault("owner", "Unknown")
+    repo_doc.setdefault("repo_name", "Unknown Repo")
+    repo_doc.setdefault("stars", 0)
+    repo_doc.setdefault("forks", 0)
+    repo_doc.setdefault("primary_language", "Unknown")
+    repo_doc.setdefault("languages", {})
+    repo_doc.setdefault("file_count", 0)
+    repo_doc.setdefault("indexed_status", "complete")
+    repo_doc.setdefault("last_indexed_at", None)
+    repo_doc.setdefault("chroma_collection_id", None)
+    repo_doc.setdefault("ai_summary", None)
+        
     chunks_count = await db["chunks"].count_documents({"repo_id": repo_id})
     
     return {

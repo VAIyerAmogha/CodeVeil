@@ -7,3 +7,7 @@ body {
   padding: 0;
   margin: 0;
 }
+
+.highlight-line {
+  background: rgba(234,179,8,0.15) !important;
+}

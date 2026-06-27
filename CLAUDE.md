@@ -6,9 +6,9 @@
 
 ## CURRENT STATUS
 
-**Current task:** 3.5 complete, Phase 3 done
-**Last completed:** query_service.py, query.py
-**Next:** Task 4.1: Auth pages + stores (Phase 4 Full Frontend)
+**Current task:** Phase 4 complete, Phase 5 next
+**Last completed:** Task 4.8: Query History + Polish
+**Next:** Phase 5: Authentication
 
 ---
 
@@ -26,6 +26,14 @@ _(append after each session)_
 - hybrid.py, context_builder.py
 - responder.py
 - query_service.py, query.py
+- Task 4.1 DONE — types/, lib/api.ts, lib/auth.ts, lib/utils.ts, store/authStore.ts, store/repoStore.ts created. tsc clean.
+- Task 4.2 DONE — Landing page: HeroSection (URL input + submit), FeatureGrid (3 cards), TechBadges. Reviewer passed.
+- Task 4.3 DONE — Dashboard: StatusBadge, LanguageDot, RepoCard, RepoGrid, useRepository hook, dashboard/page.tsx. Loading skeletons added.
+- Task 4.4 DONE — useIndexing hook (state machine, polling, cleanup), IndexingForm, ProgressTracker, IndexingStatus. Landing page wired.
+- Task 4.5 DONE — RepoHeader, RepoStats, AISummary, repository/[id]/page.tsx. Fetches repo + job data. Loading skeletons + error states.
+- Task 4.6 DONE — useQuery hook, QueryInput (Cmd+Enter shortcut), AnswerCard (react-markdown), CitationList (clickable pills), RetrievalStats (collapsible). Wired into repository/[id]/page.tsx.
+- Task 4.7 DONE — Monaco CodeViewer (vs-dark, yellow line highlight, revealLineInCenter), FilePathBreadcrumb, backend GET /file endpoint, api.getFileContent() added. Citation click opens inline code panel.
+- Phase 4 COMPLETE — Full frontend built across 8 tasks. Landing page, dashboard, indexing flow, repo detail, query workspace (react-markdown, Cmd+Enter), Monaco code viewer (yellow highlight, revealLineInCenter), query history. Two-column layout. Loading skeletons + error states on all components. Production build passes. tsc clean.
 
 ---
 

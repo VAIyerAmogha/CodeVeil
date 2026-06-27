@@ -7,9 +7,19 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+def _get_groq_api_key() -> str:
+    if settings.groq_api_key:
+        return settings.groq_api_key
+    if settings.groq_api_keys:
+        return settings.groq_api_keys.split(",")[0].strip()
+    return ""
+
 # Groq client singleton at module level
 try:
-    groq_client = Groq(api_key=settings.groq_api_key)
+    api_key = _get_groq_api_key()
+    if not api_key:
+        raise ValueError("No Groq API key found in settings.")
+    groq_client = Groq(api_key=api_key)
 except Exception as e:
     logger.error(f"Failed to initialize Groq client: {e}")
     groq_client = None

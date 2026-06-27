@@ -13,10 +13,10 @@ app.add_middleware(
 )
 
 from app.api.routes.repositories import router as repositories_router
-routers = [repositories_router]
+from app.api.routes.query import router as query_router
 
-for router in routers:
-    app.include_router(router)
+app.include_router(repositories_router)
+app.include_router(query_router, prefix="/query", tags=["query"])
 
 
 @app.get("/health")

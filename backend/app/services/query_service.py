@@ -52,6 +52,22 @@ async def run_query(repo_id: str, question: str, user_id: str | None = None) -> 
     db = get_database()
     if db is not None:
         doc = dict(final_result)
-        await db["queries"].insert_one(doc)
+        result_id = await db["queries"].insert_one(doc)
+        final_result["id"] = str(result_id.inserted_id)
         
     return final_result
+
+async def get_queries_for_repo(repo_id: str) -> list[dict]:
+    db = get_database()
+    if db is None:
+        return []
+        
+    cursor = db["queries"].find({"repo_id": repo_id}).sort("created_at", -1).limit(20)
+    queries = await cursor.to_list(length=20)
+    
+    for q in queries:
+        q["id"] = str(q.pop("_id"))
+        if isinstance(q.get("created_at"), datetime):
+            q["created_at"] = q["created_at"].isoformat() + "Z"
+            
+    return queries
