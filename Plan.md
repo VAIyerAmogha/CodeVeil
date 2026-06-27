@@ -361,9 +361,9 @@ Auth and database connections come last. Build the working product core first.
 | 4.7 Interactive Code Viewer | DONE |
 | 4.8 Query History | DONE |
 | Design: Black + Green Glassmorphism | DONE |
-| 5.1 JWT + user model | IN PROGRESS |
-| 5.2 Auth routes | TODO |
-| 5.3 Wire auth | TODO |
+| 5.1 JWT + user model | DONE |
+| 5.2 Auth routes | DONE |
+| 5.3 Wire auth | DONE |
 | 6.1 MongoDB Atlas persistence | TODO |
 | 6.2 ChromaDB + BM25 persistence | TODO |
 | 7.1 Evaluation | TODO |

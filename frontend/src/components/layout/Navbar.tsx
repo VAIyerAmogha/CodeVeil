@@ -20,9 +20,9 @@ export default function Navbar() {
         </Link>
         <nav className="flex items-center gap-6 text-sm font-medium">
           <Link href="/dashboard" className="text-green-100/70 hover:text-green-400 transition-colors">Dashboard</Link>
-          <button className="px-4 py-2 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all duration-300">
+          <Link href="/auth/login" className="px-4 py-2 rounded-md bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all duration-300">
             Sign In
-          </button>
+          </Link>
         </nav>
       </div>
     </header>

@@ -1,6 +1,6 @@
 import uuid
 import asyncio
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from app.services.indexing_job import create_job
@@ -10,27 +10,28 @@ from app.db.mongodb import get_database
 from app.ingestion.indexer import index_repo
 from app.services.file_service import get_file_content
 from app.services.query_service import get_queries_for_repo
+from app.core.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
 @router.get("/{repo_id}/queries")
-async def get_repository_queries(repo_id: str) -> list[dict]:
+async def get_repository_queries(repo_id: str, current_user: dict = Depends(get_current_user)) -> list[dict]:
     return await get_queries_for_repo(repo_id)
 
 @router.get("/{repo_id}/file")
-async def get_repository_file(repo_id: str, path: str) -> dict:
+async def get_repository_file(repo_id: str, path: str, current_user: dict = Depends(get_current_user)) -> dict:
     return await get_file_content(repo_id, path)
 
 class IndexRequest(BaseModel):
     github_url: str
 
 @router.get("")
-async def get_all_repositories() -> list[dict]:
+async def get_all_repositories(current_user: dict = Depends(get_current_user)) -> list[dict]:
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
         
-    cursor = db["repositories"].find()
+    cursor = db["repositories"].find({"user_id": current_user["user_id"]})
     repos = await cursor.to_list(length=100)
     
     # Map _id and missing fields for frontend compatibility
@@ -69,7 +70,7 @@ async def _run_pipeline(job_id: str, repo_id: str, github_url: str) -> None:
         await set_status(job_id, "failed", str(e))
 
 @router.post("/index", status_code=status.HTTP_202_ACCEPTED)
-async def index_repository(request: IndexRequest, background_tasks: BackgroundTasks) -> dict:
+async def index_repository(request: IndexRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)) -> dict:
     # Validate URL
     try:
         validate_github_url(request.github_url)
@@ -121,7 +122,8 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
             "stars": metadata.get("stars", 0),
             "forks": metadata.get("forks", 0),
             "primary_language": metadata.get("primary_language"),
-            "ai_summary": ai_summary
+            "ai_summary": ai_summary,
+            "user_id": current_user["user_id"]
         }
         await db["repositories"].insert_one(repo_doc)
 
@@ -132,11 +134,15 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
 
 
 @router.get("/{repo_id}/status")
-async def get_repository_status(repo_id: str) -> dict:
+async def get_repository_status(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
         
+    repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
+    if repo_doc and repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     job_doc = await db["jobs"].find_one({"repo_id": repo_id}, sort=[("created_at", -1)])
     if not job_doc:
         raise HTTPException(status_code=404, detail="No job found for this repository")
@@ -158,7 +164,7 @@ async def get_repository_status(repo_id: str) -> dict:
     return job_doc
 
 @router.get("/{repo_id}")
-async def get_repository(repo_id: str) -> dict:
+async def get_repository(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -166,6 +172,9 @@ async def get_repository(repo_id: str) -> dict:
     repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
     if not repo_doc:
         raise HTTPException(status_code=404, detail="Repository not found")
+        
+    if repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
         
     repo_doc["_id"] = str(repo_doc["_id"])
     repo_doc["id"] = repo_doc.get("repo_id") or str(repo_doc["_id"])
@@ -195,7 +204,7 @@ async def get_repository(repo_id: str) -> dict:
     }
 
 @router.delete("/{repo_id}")
-async def delete_repository(repo_id: str) -> dict:
+async def delete_repository(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -203,6 +212,9 @@ async def delete_repository(repo_id: str) -> dict:
     repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
     if not repo_doc:
         raise HTTPException(status_code=404, detail="Repository not found")
+        
+    if repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
         
     # Delete from Mongo
     await db["repositories"].delete_one({"repo_id": repo_id})

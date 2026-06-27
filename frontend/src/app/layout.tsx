@@ -4,6 +4,7 @@ import "./globals.css";
 
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import AuthHydrator from '@/components/layout/AuthHydrator';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col bg-black text-green-50`}>
+        <AuthHydrator />
         <Navbar />
         <main className="flex-grow flex flex-col relative z-10 w-full">
           {children}

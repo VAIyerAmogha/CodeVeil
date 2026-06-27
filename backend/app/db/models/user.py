@@ -13,8 +13,10 @@ class UserBase(BaseModel):
     oauth_provider: Optional[str] = None
     oauth_id: Optional[str] = None
 
-class UserCreate(UserBase):
-    password_hash: Optional[str] = None
+class UserCreate(BaseModel):
+    email: str
+    name: str
+    password: str
 
 class UserInDB(UserBase):
     id: str
@@ -25,4 +27,10 @@ class UserInDB(UserBase):
 class UserPublic(UserBase):
     id: str
     created_at: datetime
+    usage: UserUsage
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    name: str
     usage: UserUsage

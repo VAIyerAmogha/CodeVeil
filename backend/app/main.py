@@ -14,9 +14,13 @@ app.add_middleware(
 
 from app.api.routes.repositories import router as repositories_router
 from app.api.routes.query import router as query_router
+from app.api.routes.auth import router as auth_router
+from app.api.routes.users import router as users_router
 
 app.include_router(repositories_router)
 app.include_router(query_router, prefix="/query", tags=["query"])
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 
 @app.get("/health")

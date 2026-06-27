@@ -35,7 +35,9 @@ _(append after each session)_
 - Task 4.7 DONE — Monaco CodeViewer (vs-dark, yellow line highlight, revealLineInCenter), FilePathBreadcrumb, backend GET /file endpoint, api.getFileContent() added. Citation click opens inline code panel.
 - Phase 4 COMPLETE — Full frontend built across 8 tasks. Landing page, dashboard, indexing flow, repo detail, query workspace (react-markdown, Cmd+Enter), Monaco code viewer (yellow highlight, revealLineInCenter), query history. Two-column layout. Loading skeletons + error states on all components. Production build passes. tsc clean.
 - Design Update — Complete theme overhaul to Black + Green with Glassmorphic effects. Added persistent Navbar and Footer navigation. Sleek hover animations applied across all components.
-
+- Task 5.1 DONE — jwt.py (create/decode), dependencies.py (get_current_user, 401 on bad token), user.py models verified
+- Task 5.2 DONE — auth.py routes: POST /auth/signup, POST /auth/login, GET /auth/google, GET /auth/google/callback. httpx for token exchange. passlib bcrypt. Router registered in main.py.
+- Task 5.3 DONE — get_current_user applied to all routes (repositories, query, users). users.py GET /users/me added. Frontend: auth.ts verified, api.ts 401 interceptor added, auth/callback page handles Google OAuth redirect + setToken + hydrate authStore. Phase 5 COMPLETE.
 ---
 
 ## BLOCKERS
@@ -59,6 +61,7 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-25: cross-encoder singleton, callee expansion depth 2 for architectural — avoids recreation overhead and provides deep contextual code flow for architectural queries.
 2026-06-27: citation format [file:line], Groq errors return empty answer not crash — prevents UI crashes and enforces strict citation format for answers.
 2026-06-27: full pipeline latency recorded end-to-end — ensures performance monitoring accurately reflects total user wait time.
+2026-06-27: JWT stored in localStorage key cv_token, read only via lib/auth.ts — enforces single source of truth for auth token
 
 ---
 

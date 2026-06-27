@@ -1,6 +1,7 @@
 import { getToken } from './auth';
 import { Repository, Job } from '../types/repository';
 import { Query } from '../types/query';
+import { User } from '../types/user';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -21,6 +22,13 @@ async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Pr
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      const { clearToken } = await import('./auth');
+      clearToken();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
+    }
     let errorMsg = 'An error occurred';
     try {
       const errorData = await response.json();
@@ -72,4 +80,34 @@ export async function deleteRepo(repo_id: string): Promise<void> {
   return fetchWithAuth<void>(`/repositories/${repo_id}`, {
     method: 'DELETE',
   });
+}
+
+export async function getCurrentUser(): Promise<User> {
+  return fetchWithAuth<User>('/users/me');
+}
+
+export async function login(email: string, password: string): Promise<{ access_token: string, user: User }> {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to login');
+  }
+  return response.json();
+}
+
+export async function signup(email: string, name: string, password: string): Promise<{ access_token: string, user: User }> {
+  const response = await fetch(`${API_URL}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to signup');
+  }
+  return response.json();
 }
