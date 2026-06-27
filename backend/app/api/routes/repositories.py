@@ -16,6 +16,11 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 
 @router.get("/{repo_id}/queries")
 async def get_repository_queries(repo_id: str, current_user: dict = Depends(get_current_user)) -> list[dict]:
+    db = get_database()
+    if db is not None:
+        repo = await db["repositories"].find_one({"repo_id": repo_id})
+        if not repo or repo.get("user_id") != current_user["user_id"]:
+            raise HTTPException(status_code=403, detail="Forbidden")
     return await get_queries_for_repo(repo_id)
 
 @router.get("/{repo_id}/file")
@@ -88,7 +93,7 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     
-    existing_repo = await db["repositories"].find_one({"github_url": request.github_url})
+    existing_repo = await db["repositories"].find_one({"github_url": request.github_url, "user_id": current_user["user_id"]})
     
     # Generate summary synchronously using executor or directly since it's an async route but the groq client call is sync in responder right now
     from app.generation.responder import generate_repo_summary

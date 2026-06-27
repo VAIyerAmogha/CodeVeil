@@ -12,9 +12,7 @@ export const metadata: Metadata = {
   title: "CodeVeil",
   description: "Understand Any Codebase. Instantly.",
   icons: {
-    icon: "/CodeVeil_logo1.png",
-    shortcut: "/CodeVeil_logo1.png",
-    apple: "/CodeVeil_logo1.png",
+    icon: "/favicon.ico",
   },
 };
 
@@ -26,12 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen flex flex-col bg-black text-green-50`}>
-        <AuthHydrator />
-        <Navbar />
-        <main className="flex-grow flex flex-col relative z-10 w-full">
-          {children}
-        </main>
-        <Footer />
+        <AuthHydrator>
+          <Navbar />
+          <main className="flex-grow flex flex-col relative z-10 w-full">
+            {children}
+          </main>
+          <Footer />
+        </AuthHydrator>
       </body>
     </html>
   );

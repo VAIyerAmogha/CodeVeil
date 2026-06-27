@@ -59,14 +59,18 @@ def parse_citations(answer: str, chunks: list[dict]) -> list[dict]:
             continue
             
         matched_chunk_id = None
+        matched_chunk_file = file_path.lstrip("/")
+        
         for chunk in chunks:
             # Check if file path matches and line is within chunk boundaries
             chunk_file = chunk.get("file_path", "")
             chunk_start = chunk.get("start_line", -1)
             chunk_end = chunk.get("end_line", -1)
             
-            if file_path == chunk_file and chunk_start <= line_num <= chunk_end:
+            # Allow exact match, or if the LLM used just the filename or a suffix
+            if (file_path == chunk_file or chunk_file.endswith("/" + file_path) or file_path.endswith(chunk_file)) and chunk_start <= line_num <= chunk_end:
                 matched_chunk_id = chunk.get("chunk_id")
+                matched_chunk_file = chunk_file
                 # Fallback to other possible id keys if chunk_id isn't present
                 if not matched_chunk_id and "_id" in chunk:
                      matched_chunk_id = str(chunk["_id"])
@@ -75,7 +79,7 @@ def parse_citations(answer: str, chunks: list[dict]) -> list[dict]:
                 break
                 
         citations.append({
-            "file": file_path,
+            "file": matched_chunk_file,
             "line": line_num,
             "chunk_id": matched_chunk_id
         })
