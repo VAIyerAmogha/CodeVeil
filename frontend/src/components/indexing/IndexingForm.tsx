@@ -7,7 +7,7 @@ import IndexingStatus from './IndexingStatus';
 export default function IndexingForm() {
   const [url, setUrl] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
-  
+
   const { state, submit, progress, jobStatus, error, repoId, reset } = useIndexing();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,11 +25,11 @@ export default function IndexingForm() {
 
   if (state !== 'idle' && state !== 'submitting') {
     return (
-      <IndexingStatus 
-        state={state} 
-        progress={progress} 
-        error={error} 
-        repoId={repoId} 
+      <IndexingStatus
+        state={state}
+        progress={progress}
+        error={error}
+        repoId={repoId}
         jobStatus={jobStatus}
         onReset={reset}
       />
@@ -37,7 +37,7 @@ export default function IndexingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-lg mb-4 flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="w-full mx-auto max-w-lg mb-4 flex flex-col gap-3">
       <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"

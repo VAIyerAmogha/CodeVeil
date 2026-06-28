@@ -138,7 +138,7 @@ def generate_repo_summary(repo_name: str, description: str, languages: dict) -> 
     if not groq_client:
         return "Summary not yet generated."
         
-    prompt = f"Write a concise, 2-3 sentence technical summary of the repository '{repo_name}'.\n"
+    prompt = f"Write a concise, 2-3 sentence technical and functional summary of the repository '{repo_name}'.\n"
     if description:
         prompt += f"Description: {description}\n"
     if languages:

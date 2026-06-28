@@ -26,9 +26,7 @@ export default function RepoHeader({ repo }: RepoHeaderProps) {
           <div className="flex items-center gap-1" title="Forks">
             <span>🍴</span> {repo.forks}
           </div>
-          <div className="flex items-center">
-            Last indexed: {repo.last_indexed_at ? formatDate(repo.last_indexed_at) : 'Never'}
-          </div>
+
         </div>
       </div>
       <div>

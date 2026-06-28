@@ -19,7 +19,7 @@ import { Citation } from '@/types/query';
 
 export default function RepositoryPage() {
   const { id } = useParams() as { id: string };
-  
+
   const [repo, setRepo] = useState<Repository | null>(null);
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,14 +27,14 @@ export default function RepositoryPage() {
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
-  const { 
-    state: queryState, 
-    answer, 
-    citations, 
-    retrievalScores, 
-    queryType, 
-    latencyMs, 
-    error: queryError, 
+  const {
+    state: queryState,
+    answer,
+    citations,
+    retrievalScores,
+    queryType,
+    latencyMs,
+    error: queryError,
     submit: submitQuery,
     setResult
   } = useQuery();
@@ -47,13 +47,13 @@ export default function RepositoryPage() {
           getRepo(id),
           getRepoStatus(id).catch(() => null), // Status might fail if no job exists yet
         ]);
-        
+
         // Handle backend returning { repository: ..., stats: ... } vs direct Repository
         const repoResponse = repoData as unknown as { repository?: Repository } | Repository;
-        const r = ('repository' in repoResponse && repoResponse.repository) 
-          ? repoResponse.repository 
+        const r = ('repository' in repoResponse && repoResponse.repository)
+          ? repoResponse.repository
           : (repoResponse as Repository);
-          
+
         setRepo(r);
         setJob(jobData);
       } catch (err: unknown) {
@@ -63,7 +63,7 @@ export default function RepositoryPage() {
         setLoading(false);
       }
     }
-    
+
     if (id) {
       fetchData();
     }
@@ -103,20 +103,20 @@ export default function RepositoryPage() {
     <div className="min-h-screen bg-transparent text-green-50 p-6 md:p-10">
       <div className="max-w-[1400px] mx-auto">
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-8">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-1 flex flex-col h-[calc(100vh-80px)] sticky top-6">
             <RepoHeader repo={repo} />
-            
+
             {/* Tabs */}
             <div className="flex border-b border-green-500/20 mt-4 mb-4">
-              <button 
+              <button
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'overview' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
               >
                 Overview
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('history')}
                 className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'history' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
               >
@@ -135,29 +135,29 @@ export default function RepositoryPage() {
               )}
             </div>
           </div>
-          
+
           {/* Right Column */}
           <div className="lg:col-span-2 flex flex-col mt-10 lg:mt-0 pt-8 lg:pt-0 border-t lg:border-t-0 border-green-500/20">
-            <QueryInput 
-              state={queryState} 
+            <QueryInput
+              state={queryState}
               queryType={queryType}
               error={queryError}
-              onSubmit={(q) => submitQuery(id, q)} 
+              onSubmit={(q) => submitQuery(id, q)}
             />
-            
+
             {queryState === 'answered' && (
               <>
-                <AnswerCard 
+                <AnswerCard
                   answer={answer}
                   latencyMs={latencyMs}
                   queryType={queryType}
                 />
-                <CitationList 
+                <CitationList
                   citations={citations}
                   onCitationClick={(c) => setSelectedCitation(c)}
                 />
                 {selectedCitation && (
-                  <CodeViewer 
+                  <CodeViewer
                     filePath={selectedCitation.file}
                     highlightLine={selectedCitation.line}
                     repoId={id}
@@ -169,7 +169,7 @@ export default function RepositoryPage() {
               </>
             )}
           </div>
-          
+
         </div>
       </div>
     </div>

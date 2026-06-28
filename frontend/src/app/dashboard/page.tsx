@@ -25,12 +25,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-transparent text-green-50 p-6 md:p-10">
       <div className="max-w-6xl mx-auto flex flex-col gap-12">
-        
+
         <div>
           <h1 className="text-3xl md:text-4xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Welcome back, {firstName}!</h1>
           <p className="text-green-100/60 mb-8 text-lg">Analyze a new repository or explore your existing ones.</p>
-          
-          <div className="bg-black/40 border border-green-500/20 p-6 md:p-8 rounded-2xl shadow-[0_4px_30px_rgba(0,255,0,0.05)]">
+
+          <div className="flex flex-col justify-center items-center bg-black/40 border border-green-500/20 p-6 md:p-8 rounded-2xl shadow-[0_4px_30px_rgba(0,255,0,0.05)]">
             <h2 className="text-xl font-semibold mb-6 text-green-50">Index New Repository</h2>
             <IndexingForm />
           </div>
