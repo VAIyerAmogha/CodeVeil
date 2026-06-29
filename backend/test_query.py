@@ -1,25 +1,22 @@
-import sys
-sys.path.append("/home/amg/Desktop/CodeVeil/backend")
-from app.core.auth.jwt import create_access_token
-import requests
-from pymongo import MongoClient
+import asyncio
+from app.db.mongodb import get_database
+from app.services.query_service import run_query
+import os
 
-token = create_access_token({'user_id': '667be9d9a10123456789abcd'})
+async def main():
+    db = get_database()
+    repo = await db["repositories"].find_one({"github_url": "https://github.com/Arjun-1807/Unbind-AI"})
+    if repo:
+        repo_id = repo["repo_id"]
+        print("Repo ID:", repo_id)
+        try:
+            res = await run_query(repo_id, "What is this repo about?")
+            print("Query Success:", res.get("answer"))
+        except Exception as e:
+            print("Query Error:", e)
+            import traceback
+            traceback.print_exc()
+    else:
+        print("Repo not found")
 
-client = MongoClient("mongodb+srv://amoghavaiyer_db_user:QTuWfN2oYG37p7iS@cluster0.3a7dkye.mongodb.net/?appName=Cluster0")
-repo = client.codeveil.repositories.find_one()
-if not repo:
-    print("No repo found")
-    sys.exit(1)
-    
-repo_id = str(repo["_id"])
-print(f"Using repo: {repo_id}")
-
-res = requests.post(
-    "http://localhost:8000/query",
-    json={"repo_id": repo_id, "question": "give me the flow of the retrieval pipeline"},
-    headers={"Authorization": f"Bearer {token}"}
-)
-
-print("Status code:", res.status_code)
-print("Response text:", res.text)
+asyncio.run(main())

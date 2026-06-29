@@ -1,0 +1,14 @@
+{
+  "crons": [
+    {
+      "path": "/indexing/active-batch",
+      "schedule": "* * * * *"
+    }
+  ],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}

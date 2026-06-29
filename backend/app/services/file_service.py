@@ -1,10 +1,16 @@
 import os
 from fastapi import HTTPException
 from app.db.mongodb import get_database
-from app.ingestion.cloner import get_repo_path
+from app.ingestion.cloner import validate_github_url
 from app.ingestion.language_detector import detect_language
+from app.ingestion.github_fetcher import fetch_file_content
+from app.config import settings
+import httpx
 
 async def get_file_content(repo_id: str, file_path: str) -> dict:
+    if ":" in file_path:
+        file_path = file_path.split(":")[0]
+
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
@@ -17,32 +23,29 @@ async def get_file_content(repo_id: str, file_path: str) -> dict:
     if not github_url:
         raise HTTPException(status_code=404, detail="Repository URL not found")
         
-    repo_path = get_repo_path(github_url)
-    if not repo_path:
-        raise HTTPException(status_code=404, detail="Cloned repository not found")
+    try:
+        owner, repo_name = validate_github_url(github_url)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
         
-    full_path = os.path.join(repo_path, file_path)
-    
-    # Path traversal protection
-    if not os.path.abspath(full_path).startswith(os.path.abspath(repo_path)):
-        raise HTTPException(status_code=400, detail="Invalid file path")
+    async with httpx.AsyncClient(
+        headers={"Accept": "application/vnd.github+json",
+                 **({} if not settings.github_token else {"Authorization": f"Bearer {settings.github_token}"})}
+    ) as client:
+        content_bytes = await fetch_file_content(client, owner, repo_name, file_path)
         
-    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+    if not content_bytes:
         raise HTTPException(status_code=404, detail="File not found")
         
     try:
-        with open(full_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = content_bytes.decode('utf-8')
     except UnicodeDecodeError:
         try:
-            with open(full_path, 'r', encoding='latin-1') as f:
-                content = f.read()
+            content = content_bytes.decode('latin-1')
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
-        
-    language = detect_language(full_path)
+            
+    language = detect_language(file_path)
     
     return {
         "content": content,

@@ -22,6 +22,9 @@ app.include_router(query_router, prefix="/query", tags=["query"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(users_router, prefix="/users", tags=["users"])
 
+from app.api.routes.indexing import router as indexing_router
+app.include_router(indexing_router)
+
 
 @app.get("/health")
 async def health() -> dict[str, str]:

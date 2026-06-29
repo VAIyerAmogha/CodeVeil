@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from app.services.indexing_job import create_job
-from app.ingestion.cloner import validate_github_url, clone_repository, CloneError
+from app.ingestion.cloner import validate_github_url, CloneError
 from app.services.github import fetch_repo_metadata
 from app.db.mongodb import get_database
 from app.ingestion.indexer import index_repo
@@ -63,16 +63,21 @@ async def get_all_repositories(current_user: dict = Depends(get_current_user)) -
         
     return repos
 
-async def _run_pipeline(job_id: str, repo_id: str, github_url: str) -> None:
-    from app.services.indexing_job import set_status
+async def _run_local_batches(job_id: str, repo_id: str, github_url: str):
+    from app.services.indexing_job import get_job, set_status
+    from app.ingestion.indexer import process_batch
+    import asyncio
     try:
-        # Run clone in executor since it's synchronous
-        loop = asyncio.get_event_loop()
-        clone_path = await loop.run_in_executor(None, clone_repository, github_url)
-        # Index
-        await index_repo(repo_id, clone_path, job_id)
+        while True:
+            job = await get_job(job_id)
+            if not job or job.get("status") in ("complete", "failed"):
+                break
+            await process_batch(repo_id, github_url, job_id)
+            await asyncio.sleep(0.5)
     except Exception as e:
-        await set_status(job_id, "failed", str(e))
+        import traceback
+        traceback.print_exc()
+        await set_status(job_id, "failed", error=str(e))
 
 @router.post("/index", status_code=status.HTTP_202_ACCEPTED)
 async def index_repository(request: IndexRequest, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)) -> dict:
@@ -133,9 +138,14 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
         await db["repositories"].insert_one(repo_doc)
 
     job_id = await create_job(repo_id, request.github_url)
-    background_tasks.add_task(_run_pipeline, job_id, repo_id, request.github_url)
+    from app.ingestion.indexer import prepare_index
+    total_files = await prepare_index(repo_id, request.request_url if hasattr(request, 'request_url') else request.github_url, job_id)
 
-    return {"job_id": job_id, "repo_id": repo_id}
+    import os
+    if not os.getenv("VERCEL"):
+        background_tasks.add_task(_run_local_batches, job_id, repo_id, request.github_url)
+
+    return {"job_id": job_id, "repo_id": repo_id, "total_files": total_files}
 
 
 @router.get("/{repo_id}/status")
@@ -226,13 +236,6 @@ async def delete_repository(repo_id: str, current_user: dict = Depends(get_curre
     await db["jobs"].delete_many({"repo_id": repo_id})
     await db["chunks"].delete_many({"repo_id": repo_id})
     await db["queries"].delete_many({"repo_id": repo_id})
-    
-    # Delete from ChromaDB
-    from app.db.chromadb import get_chroma_client
-    client = get_chroma_client()
-    try:
-        client.delete_collection(name=repo_id)
-    except Exception:
-        pass
+    await db["bm25_indexes"].delete_many({"repo_id": repo_id})
         
     return {"status": "success", "message": "Repository deleted"}

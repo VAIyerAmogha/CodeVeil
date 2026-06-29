@@ -15,6 +15,8 @@ def fetch_repo_metadata(github_url: str) -> Dict[str, Any]:
         auth = (settings.github_client_id, settings.github_client_secret)
         
     headers = {"Accept": "application/vnd.github.v3+json"}
+    if settings.github_token:
+        headers["Authorization"] = f"Bearer {settings.github_token}"
     
     with httpx.Client(auth=auth, headers=headers) as client:
         # Fetch basic metadata

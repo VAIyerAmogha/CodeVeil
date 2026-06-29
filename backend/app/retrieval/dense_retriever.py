@@ -1,77 +1,59 @@
 import logging
 from typing import List, Dict, Any
-from app.db.chromadb import get_chroma_client
 from app.db.mongodb import get_database
-from app.ingestion.indexer import embedding_model
+from app.ingestion.embedder import embed_query
 
 logger = logging.getLogger(__name__)
 
-
 async def retrieve_dense(repo_id: str, query: str, top_k: int = 20) -> List[Dict[str, Any]]:
-    """
-    Embed the query using the SentenceTransformer singleton from indexer.py.
-    Query ChromaDB collection for this repo_id.
-    Fetch corresponding metadata from MongoDB chunks collection.
-    Return top_k results.
-    Each result: {chunk_id, score, metadata} where score is cosine similarity.
-    """
-    client = get_chroma_client()
-    try:
-        collection = client.get_collection(name=repo_id)
-    except Exception as e:
-        logger.error(f"Failed to retrieve ChromaDB collection for repo {repo_id}: {e}")
-        raise ValueError(f"ChromaDB collection for repository '{repo_id}' does not exist.")
-
-    # Embed the query using the singleton SentenceTransformer
-    query_vector = embedding_model.encode(query).tolist()
-
-    # Query ChromaDB (returns distances sorted ascending, i.e., most similar first)
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=top_k,
-        include=["distances"]
-    )
-
-    if not results or not results["ids"] or not results["ids"][0]:
-        return []
-
-    chroma_ids = results["ids"][0]
-    distances = results["distances"][0]
-
-    # Fetch chunk metadata from MongoDB
+    query_vector = await embed_query(query)
+    
     db = get_database()
     if db is None:
         raise RuntimeError("Database connection not available to fetch metadata")
-
-    chunks_cursor = db["chunks"].find(
-        {"repo_id": repo_id, "chroma_id": {"$in": chroma_ids}}
-    )
-
-    chunk_metadata_map = {}
-    async for chunk in chunks_cursor:
-        meta = {
-            "file_path": chunk.get("file_path"),
-            "function_name": chunk.get("function_name"),
-            "parent_class": chunk.get("parent_class"),
-            "start_line": chunk.get("start_line"),
-            "end_line": chunk.get("end_line"),
-            "language": chunk.get("language"),
-            "chunk_type": chunk.get("chunk_type"),
-            "summary": chunk.get("summary"),
+        
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": "chunks_vector_index",
+                "path": "embedding",
+                "queryVector": query_vector,
+                "numCandidates": 150,
+                "limit": top_k,
+                "filter": {"repo_id": {"$eq": repo_id}}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "score": {"$meta": "vectorSearchScore"},
+                "chunk_id": "$chroma_id",
+                "file_path": 1,
+                "function_name": 1,
+                "parent_class": 1,
+                "start_line": 1,
+                "end_line": 1,
+                "language": 1,
+                "chunk_type": 1,
+                "summary": 1,
+                "source_code": 1
+            }
         }
-        chunk_metadata_map[chunk["chroma_id"]] = meta
-
-    # Reconstruct top_k results matching ChromaDB's order
+    ]
+    
+    cursor = db["chunks"].aggregate(pipeline)
+    
     top_results = []
-    for chroma_id, distance in zip(chroma_ids, distances):
-        # Calculate cosine similarity score (ChromaDB returns cosine distance: 1.0 - cosine_similarity)
-        score = 1.0 - distance
-
-        metadata = chunk_metadata_map.get(chroma_id, {})
+    async for chunk in cursor:
+        score = chunk.pop("score", 0.0)
+        chunk_id = chunk.pop("chunk_id", "")
+        source_code = chunk.get("source_code", "")
+        
         top_results.append({
-            "chunk_id": chroma_id,
+            "chunk_id": chunk_id,
             "score": float(score),
-            "metadata": metadata
+            "source_code": source_code,
+            "metadata": chunk
         })
-
+        
     return top_results

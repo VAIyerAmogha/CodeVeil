@@ -1,7 +1,11 @@
-from app.core.auth.jwt import create_access_token, decode_access_token
-from datetime import timedelta
-token = create_access_token({'user_id': 'x'})
-# Can't easily force expiry in unit test — just verify structure
-payload = decode_access_token(token)
-assert 'exp' in payload
-print('exp field present: OK')
+import asyncio
+from app.ingestion.embedder import embed_texts, embed_query
+async def test():
+    vecs = await embed_texts(['def hello(): pass', 'class Foo: pass'])
+    print(f'batch: {len(vecs)} vectors, dim={len(vecs[0])}')
+    assert len(vecs[0]) == 768, f'Wrong dim: {len(vecs[0])}'
+    q = await embed_query('what does hello do')
+    print(f'query: dim={len(q)}')
+    assert len(q) == 768
+    print('ALL OK')
+asyncio.run(test())

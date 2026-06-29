@@ -1,126 +1,74 @@
-import os
+import tempfile
 import hashlib
-import pickle
 import uuid
+import os
 from typing import List, Dict, Optional, Any
-from sentence_transformers import SentenceTransformer
-from rank_bm25 import BM25Okapi
+from pymongo import UpdateOne
+from datetime import datetime
+from pathlib import Path
 
-from app.db.chromadb import get_chroma_client
 from app.db.mongodb import get_database
 from app.ingestion.language_detector import detect_language, is_ast_supported
 from app.ingestion.ast_chunker import chunk_repo
-from app.ingestion.fallback_chunker import chunk_file_fallback
+from app.ingestion.fallback_chunker import chunk_file_fallback, chunk_content_fallback
 from app.ingestion.enricher import enrich_chunks
 from app.services.indexing_job import update_progress, set_status
-
-# 1. Embedding model singleton
-# BAAI/bge-small-en-v1.5 via SentenceTransformer at module level
-# NEVER instantiated inside a function or per request
-embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+from app.ingestion.embedder import embed_texts
+from app.ingestion.github_fetcher import fetch_all_files
+from app.ingestion.cloner import validate_github_url
 
 
-def _embed(texts: List[str]) -> List[List[float]]:
-    """Embed a list of texts using the singleton embedding model."""
-    if not texts:
-        return []
-    embeddings = embedding_model.encode(texts)
-    return embeddings.tolist()
-
-
-# 2. ChromaDB writes
-def get_or_create_collection(repo_id: str):
-    """Get or create a ChromaDB collection for a given repo."""
-    client = get_chroma_client()
-    return client.get_or_create_collection(name=repo_id)
-
-
-def store_chunks_in_chroma(repo_id: str, chunks: List[Dict[str, Any]]) -> None:
-    """
-    Embed chunk source_code, upsert into ChromaDB with chunk metadata.
-    Note: As per rules, chunk metadata is kept in MongoDB, so we only
-    upsert ID and embeddings (and documents) to Chroma.
-    """
+async def store_chunks_with_embeddings(repo_id: str, chunks: List[Dict[str, Any]]) -> None:
     if not chunks:
         return
 
-    collection = get_or_create_collection(repo_id)
-
-    ids = []
-    documents = []
-    
-    texts_to_embed = []
-    for chunk in chunks:
-        if "chroma_id" not in chunk:
-            chunk["chroma_id"] = str(uuid.uuid4())
-            
-        texts_to_embed.append(chunk.get("source_code", ""))
-
-    embeddings = _embed(texts_to_embed)
-
-    for chunk in chunks:
-        ids.append(chunk["chroma_id"])
-        documents.append(chunk.get("source_code", ""))
-
-    collection.upsert(
-        ids=ids,
-        embeddings=embeddings,
-        documents=documents,
-    )
-
-
-# 3. BM25 index
-def build_and_save_bm25(repo_id: str, chunks: List[Dict[str, Any]]) -> None:
-    """Build a BM25 index from chunk source_code texts and save to disk."""
-    if not chunks:
-        return
-
-    texts = [chunk.get("source_code", "") for chunk in chunks]
-    # Basic tokenization by splitting on whitespace
-    tokenized_corpus = [doc.split() for doc in texts]
-    bm25 = BM25Okapi(tokenized_corpus)
-
-    save_dir = "/tmp/codeveil_bm25"
-    os.makedirs(save_dir, exist_ok=True)
-
-    file_path = os.path.join(save_dir, f"{repo_id}.pkl")
-    with open(file_path, "wb") as f:
-        pickle.dump(bm25, f)
-
-
-# 4. MongoDB writes
-async def store_chunks_in_mongo(repo_id: str, chunks: List[Dict[str, Any]]) -> None:
-    """
-    Insert chunk documents into MongoDB.
-    Expects chroma_id to be set by store_chunks_in_chroma.
-    """
-    if not chunks:
-        return
+    # Call embedder to get embeddings for all source codes
+    embeddings = await embed_texts([chunk.get("source_code", "") for chunk in chunks])
 
     db = get_database()
     if db is None:
         return
-
     chunks_collection = db["chunks"]
+    
+    operations = []
+    for i, chunk in enumerate(chunks):
+        chunk["embedding"] = embeddings[i]
+        chunk["repo_id"] = repo_id
+        if "chroma_id" not in chunk:
+            chunk["chroma_id"] = str(uuid.uuid4())
+            
+        # Upsert into MongoDB chunks collection
+        filter_query = {
+            "repo_id": repo_id,
+            "file_path": chunk["file_path"],
+            "function_name": chunk.get("function_name")
+        }
+        update_query = {"$set": chunk}
+        
+        operations.append(UpdateOne(filter_query, update_query, upsert=True))
+        
+    if operations:
+        await chunks_collection.bulk_write(operations)
 
-    documents_to_insert = []
-    for chunk in chunks:
-        doc = chunk.copy()
-        doc["repo_id"] = repo_id
-        documents_to_insert.append(doc)
 
-    if documents_to_insert:
-        await chunks_collection.insert_many(documents_to_insert)
+async def build_and_save_bm25_mongo(repo_id: str, chunks: List[Dict]) -> None:
+    corpus = [c.get("source_code", "").split() for c in chunks]
+    chunk_ids = [c.get("chroma_id", "") for c in chunks]
+    db = get_database()
+    await db["bm25_indexes"].update_one(
+        {"repo_id": repo_id},
+        {"$set": {
+            "repo_id": repo_id,
+            "corpus": corpus,
+            "chunk_ids": chunk_ids,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
 
 
-# 5. SHA256 cache
-def compute_sha256(file_path: str) -> str:
-    """Compute the SHA256 hash of a file."""
-    hasher = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while chunk := f.read(8192):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+def compute_sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
 
 
 async def get_cached_sha(repo_id: str, file_path: str) -> Optional[str]:
@@ -165,96 +113,172 @@ async def is_file_changed(repo_id: str, file_path: str, current_sha: str) -> boo
     return current_sha != cached_sha
 
 
-# 6. Main entry point
-async def index_repo(repo_id: str, clone_path: str, job_id: str) -> Dict[str, int]:
-    """
-    Walk all files in clone_path.
-    Detect language, check SHA cache, chunk, enrich, embed, store.
-    """
+async def index_repo(repo_id: str, github_url: str, job_id: str) -> Dict[str, int]:
+    owner, repo = validate_github_url(github_url)
+    cached_shas = await get_all_cached_shas(repo_id)
+    files = await fetch_all_files(owner, repo)
     files_processed = 0
-    chunks_generated = 0
-    embeddings_created = 0
-
     all_repo_chunks = []
+    
+    await set_status(job_id, "running")
 
-    try:
-        await set_status(job_id, "running")
+    for file_dict in files:
+        path = file_dict["path"]
+        content_bytes = file_dict["content"]
+        sha = file_dict["sha"]
 
-        # Load all cached SHAs in a single query to prevent N round-trips over the network
-        cached_shas = await get_all_cached_shas(repo_id)
+        language = detect_language(path)
+        if not language:
+            continue
 
-        for root, dirs, files in os.walk(clone_path):
-            # Skip common build/dependency directories
-            dirs[:] = [d for d in dirs if d not in {".git", "node_modules", ".venv", "venv", "__pycache__", ".next", ".pytest_cache", ".codex", ".agents", "dist", "build"}]
-                
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Use relative path for storage
-                rel_file_path = os.path.relpath(file_path, clone_path)
+        files_processed += 1
+        if files_processed % 100 == 0 or files_processed == 1:
+            await update_progress(job_id, files_processed=files_processed)
 
-                language = detect_language(file_path)
-                if not language:
-                    continue
+        # SHA cache check (use github tree sha as cache key)
+        if cached_shas.get(path) == sha:
+            continue
 
-                files_processed += 1
-                # Batch progress updates to avoid hitting DB rate limits/latency on every single file
-                if files_processed % 100 == 0 or files_processed == 1:
-                    await update_progress(job_id, files_processed=files_processed)
-                
+        if is_ast_supported(language):
+            # Bridge: write to tempfile for ast_chunker
+            suffix = Path(path).suffix
+            try:
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                    tmp.write(content_bytes)
+                    tmp_path = tmp.name
                 try:
-                    current_sha = compute_sha256(file_path)
-                except OSError:
-                    continue
+                    file_chunks = chunk_repo(tmp_path, language)
+                except Exception:
+                    content_str = content_bytes.decode("utf-8", errors="replace")
+                    file_chunks = chunk_content_fallback(content_str, path, language)
+                finally:
+                    os.unlink(tmp_path)
+            except Exception:
+                continue
+        else:
+            content_str = content_bytes.decode("utf-8", errors="replace")
+            file_chunks = chunk_content_fallback(content_str, path, language)
 
-                cached_sha = cached_shas.get(rel_file_path)
-                if current_sha == cached_sha:
-                    continue
+        for chunk in file_chunks:
+            chunk["file_path"] = path   # use GitHub path not tmp path
+            chunk["sha256"] = sha
 
-                if is_ast_supported(language):
-                    try:
-                        file_chunks = chunk_repo(file_path, language)
-                    except Exception:
-                        file_chunks = chunk_file_fallback(file_path, language)
-                else:
-                    file_chunks = chunk_file_fallback(file_path, language)
+        all_repo_chunks.extend(file_chunks)
 
-                if not file_chunks:
-                    continue
+    await update_progress(job_id, files_processed=files_processed)
 
-                for chunk in file_chunks:
-                    chunk["file_path"] = rel_file_path
-                    chunk["sha256"] = current_sha
+    if all_repo_chunks:
+        all_repo_chunks = await enrich_chunks(all_repo_chunks)
+        chunks_generated = len(all_repo_chunks)
+        await update_progress(job_id, chunks_generated=chunks_generated)
 
-                all_repo_chunks.extend(file_chunks)
+        await store_chunks_with_embeddings(repo_id, all_repo_chunks)
+        await update_progress(job_id, embeddings_created=chunks_generated)
+        await build_and_save_bm25_mongo(repo_id, all_repo_chunks)
 
-        # Update final processed count
-        await update_progress(job_id, files_processed=files_processed)
+    await set_status(job_id, "complete")
+    return {
+        "files_processed": files_processed,
+        "chunks_generated": len(all_repo_chunks),
+        "embeddings_created": len(all_repo_chunks)
+    }
 
-        if all_repo_chunks:
-            # Batch enrich all missing summaries concurrently
-            all_repo_chunks = await enrich_chunks(all_repo_chunks)
-            
-            chunks_generated = len(all_repo_chunks)
-            await update_progress(job_id, chunks_generated=chunks_generated)
+async def _append_bm25_mongo(repo_id: str, chunks: List[Dict]) -> None:
+    """Append new chunks to existing BM25 corpus in MongoDB."""
+    db = get_database()
+    new_corpus = [c.get("source_code", "").split() for c in chunks]
+    new_ids = [c.get("chroma_id", "") for c in chunks]
+    existing = await db["bm25_indexes"].find_one({"repo_id": repo_id})
+    if existing:
+        corpus = existing.get("corpus", []) + new_corpus
+        chunk_ids = existing.get("chunk_ids", []) + new_ids
+    else:
+        corpus = new_corpus
+        chunk_ids = new_ids
+    await db["bm25_indexes"].update_one(
+        {"repo_id": repo_id},
+        {"$set": {
+            "corpus": corpus,
+            "chunk_ids": chunk_ids,
+            "created_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
 
-            # 1. Store in Chroma (also sets chroma_id on chunks)
-            store_chunks_in_chroma(repo_id, all_repo_chunks)
-            embeddings_created = chunks_generated
-            await update_progress(job_id, embeddings_created=embeddings_created)
+async def prepare_index(repo_id: str, github_url: str, job_id: str) -> int:
+    """Fetch file tree from GitHub, filter by language + SHA cache, save to job's pending_files. Returns total file count."""
+    from app.ingestion.github_fetcher import fetch_repo_tree
+    from app.services.indexing_job import set_pending_files
+    owner, repo_name = validate_github_url(github_url)
+    tree = await fetch_repo_tree(owner, repo_name)
+    # Filter to only files with a detectable language
+    filtered = [f for f in tree if detect_language(f["path"]) is not None]
+    # SHA cache check — skip already indexed unchanged files
+    cached_shas = await get_all_cached_shas(repo_id)
+    pending = [f for f in filtered if cached_shas.get(f["path"]) != f.get("sha")]
+    await set_pending_files(job_id, pending)
+    return len(pending)
 
-            # 2. Build BM25
-            build_and_save_bm25(repo_id, all_repo_chunks)
-
-            # 3. Store in Mongo
-            await store_chunks_in_mongo(repo_id, all_repo_chunks)
-
+async def process_batch(repo_id: str, github_url: str, job_id: str) -> Dict:
+    """Fetch content for one batch, chunk, embed, store. Returns {"done": bool, "processed": int}"""
+    from app.ingestion.github_fetcher import fetch_file_content
+    from app.services.indexing_job import pop_batch, set_status, get_job, update_progress
+    from app.config import settings
+    import httpx
+    
+    batch = await pop_batch(job_id, batch_size=20)
+    if not batch:
         await set_status(job_id, "complete")
-        return {
-            "files_processed": files_processed,
-            "chunks_generated": chunks_generated,
-            "embeddings_created": embeddings_created
-        }
-        
-    except Exception as e:
-        await set_status(job_id, "failed", str(e))
-        raise
+        return {"done": True, "processed": 0}
+
+    owner, repo_name = validate_github_url(github_url)
+    all_chunks = []
+
+    async with httpx.AsyncClient(
+        headers={"Accept": "application/vnd.github+json",
+                 **({} if not settings.github_token else {"Authorization": f"Bearer {settings.github_token}"})}
+    ) as client:
+        for file_info in batch:
+            path = file_info["path"]
+            sha = file_info["sha"]
+            language = detect_language(path)
+            if not language:
+                continue
+
+            content_bytes = await fetch_file_content(client, owner, repo_name, path)
+            if not content_bytes:
+                continue
+
+            if is_ast_supported(language):
+                suffix = Path(path).suffix
+                try:
+                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                        tmp.write(content_bytes)
+                        tmp_path = tmp.name
+                    try:
+                        file_chunks = chunk_repo(tmp_path, language)
+                    except Exception:
+                        content_str = content_bytes.decode("utf-8", errors="replace")
+                        file_chunks = chunk_content_fallback(content_str, path, language)
+                    finally:
+                        os.unlink(tmp_path)
+                except Exception:
+                    continue
+            else:
+                content_str = content_bytes.decode("utf-8", errors="replace")
+                file_chunks = chunk_content_fallback(content_str, path, language)
+
+            for chunk in file_chunks:
+                chunk["file_path"] = path
+                chunk["sha256"] = sha
+            all_chunks.extend(file_chunks)
+
+    if all_chunks:
+        all_chunks = await enrich_chunks(all_chunks)
+        await store_chunks_with_embeddings(repo_id, all_chunks)
+        await _append_bm25_mongo(repo_id, all_chunks)
+
+    job_doc = await get_job(job_id)
+    if job_doc:
+        await update_progress(job_id, files_processed=job_doc.get("processed_file_count", 0))
+    return {"done": False, "processed": len(batch)}

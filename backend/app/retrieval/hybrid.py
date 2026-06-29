@@ -1,7 +1,6 @@
 import logging
 from typing import List, Dict, Any
 from sentence_transformers import CrossEncoder
-from app.db.chromadb import get_chroma_client
 from app.db.mongodb import get_database
 from app.retrieval.bm25_retriever import retrieve_bm25
 from app.retrieval.dense_retriever import retrieve_dense
@@ -34,11 +33,13 @@ def merge_results(
         cid = r["chunk_id"]
         if cid in merged_map:
             merged_map[cid]["dense_score"] = r["score"]
+            merged_map[cid]["source_code"] = r.get("source_code", "")
         else:
             merged_map[cid] = {
                 "chunk_id": cid,
                 "bm25_score": 0.0,
-                "dense_score": r["score"]
+                "dense_score": r["score"],
+                "source_code": r.get("source_code", "")
             }
 
     return list(merged_map.values())
@@ -94,28 +95,28 @@ async def hybrid_retrieve(
     if not merged:
         return []
 
-    # 3. Fetch source code from ChromaDB to perform reranking
-    client = get_chroma_client()
-    try:
-        collection = client.get_collection(name=repo_id)
-        chunk_ids = [c["chunk_id"] for c in merged]
-        chroma_res = collection.get(ids=chunk_ids, include=["documents"])
-        
-        id_to_doc = {}
-        if chroma_res and "ids" in chroma_res and "documents" in chroma_res:
-            for cid, doc in zip(chroma_res["ids"], chroma_res["documents"]):
-                id_to_doc[cid] = doc
-    except Exception as e:
-        logger.error(f"Error fetching source code from ChromaDB for reranking: {e}")
-        id_to_doc = {}
+    # 3. Fetch missing source code from MongoDB for chunks that only came from BM25
+    missing_source_chunk_ids = [c["chunk_id"] for c in merged if "source_code" not in c]
+    
+    id_to_doc = {}
+    if missing_source_chunk_ids:
+        db = get_database()
+        if db is not None:
+            chunks_cursor = db["chunks"].find(
+                {"repo_id": repo_id, "chroma_id": {"$in": missing_source_chunk_ids}},
+                {"chroma_id": 1, "source_code": 1}
+            )
+            async for doc in chunks_cursor:
+                id_to_doc[doc.get("chroma_id")] = doc.get("source_code", "")
 
     # Attach source code for cross-encoder matching
     chunks_for_rerank = []
     for c in merged:
         cid = c["chunk_id"]
+        source_code = c.get("source_code", id_to_doc.get(cid, ""))
         chunks_for_rerank.append({
             "chunk_id": cid,
-            "source_code": id_to_doc.get(cid, ""),
+            "source_code": source_code,
             "bm25_score": c["bm25_score"],
             "dense_score": c["dense_score"],
         })

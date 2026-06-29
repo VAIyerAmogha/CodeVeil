@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.db.mongodb import get_database
 
 async def create_job(repo_id: str, github_url: str) -> str:
@@ -16,6 +16,9 @@ async def create_job(repo_id: str, github_url: str) -> str:
             "chunks_generated": 0,
             "embeddings_created": 0
         },
+        "pending_files": [],
+        "processed_file_count": 0,
+        "batch_status": "waiting",
         "error": None,
         "created_at": datetime.datetime.now(datetime.timezone.utc),
         "updated_at": datetime.datetime.now(datetime.timezone.utc)
@@ -56,6 +59,49 @@ async def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     if db is None:
         return None
     doc = await db["jobs"].find_one({"job_id": job_id})
+    if doc:
+        doc["_id"] = str(doc["_id"])
+    return doc
+
+async def set_pending_files(job_id: str, files: List[Dict]) -> None:
+    db = get_database()
+    if db is None: return
+    await db["jobs"].update_one(
+        {"job_id": job_id},
+        {"$set": {
+            "pending_files": files,
+            "batch_status": "processing",
+            "updated_at": datetime.datetime.now(datetime.timezone.utc)
+        }}
+    )
+
+async def pop_batch(job_id: str, batch_size: int = 20) -> List[Dict]:
+    db = get_database()
+    if db is None: return []
+    # Step 1: read first batch_size items
+    doc = await db["jobs"].find_one({"job_id": job_id})
+    if not doc or not doc.get("pending_files"):
+        return []
+    batch = doc["pending_files"][:batch_size]
+    remaining = doc["pending_files"][batch_size:]
+    # Step 2: update pending_files to remaining
+    await db["jobs"].update_one(
+        {"job_id": job_id},
+        {"$set": {
+            "pending_files": remaining,
+            "processed_file_count": doc.get("processed_file_count", 0) + len(batch),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc)
+        }}
+    )
+    return batch
+
+async def get_active_job() -> Optional[Dict]:
+    db = get_database()
+    if db is None: return None
+    doc = await db["jobs"].find_one(
+        {"batch_status": "processing"},
+        sort=[("created_at", 1)]
+    )
     if doc:
         doc["_id"] = str(doc["_id"])
     return doc
