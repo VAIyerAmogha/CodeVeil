@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "CodeVeil",
   description: "Understand Any Codebase. Instantly.",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/CodeVeil_logo1.png",
   },
 };
 

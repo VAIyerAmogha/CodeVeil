@@ -6,9 +6,7 @@
 
 ## CURRENT STATUS
 
-**Current task:** Theme Overhaul complete
-**Last completed:** Black + Green Glassmorphic Design Update
-**Next:** Phase 5: Authentication
+**Current task:** Replace Voyage AI embedder with HuggingFace Inference API (BAAI/bge-base-en-v1.5)
 
 ---
 
@@ -38,6 +36,7 @@ _(append after each session)_
 - Task 5.1 DONE — jwt.py (create/decode), dependencies.py (get_current_user, 401 on bad token), user.py models verified
 - Task 5.2 DONE — auth.py routes: POST /auth/signup, POST /auth/login, GET /auth/google, GET /auth/google/callback. httpx for token exchange. passlib bcrypt. Router registered in main.py.
 - Task 5.3 DONE — get_current_user applied to all routes (repositories, query, users). users.py GET /users/me added. Frontend: auth.ts verified, api.ts 401 interceptor added, auth/callback page handles Google OAuth redirect + setToken + hydrate authStore. Phase 5 COMPLETE.
+- Embedder switched from Voyage AI to HuggingFace Inference API (hf-inference provider, BAAI/bge-base-en-v1.5, 768 dims). Handles cold-start 503 waits, 429 rate-limit backoff, and 2D/3D response shapes. Batch size 50. voyageai SDK removed.
 ---
 
 ## BLOCKERS
@@ -62,6 +61,8 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-27: citation format [file:line], Groq errors return empty answer not crash — prevents UI crashes and enforces strict citation format for answers.
 2026-06-27: full pipeline latency recorded end-to-end — ensures performance monitoring accurately reflects total user wait time.
 2026-06-27: JWT stored in localStorage key cv_token, read only via lib/auth.ts — enforces single source of truth for auth token
+2026-06-30: Voyage AI free tier without payment method throttled to 3 RPM / 10K TPM — impractically slow for indexing. Switched to HuggingFace Inference API (hf-inference, BAAI/bge-base-en-v1.5, 768 dims) which has no card-gated rate limit on the free tier.
+2026-06-30: Gemini's 1500 req/day hard daily limit made production indexing unreliable. Voyage AI voyage-code-3: 200M token free tier (not request-count limited), purpose-built for code retrieval, no credit card required for signup.
 
 ---
 
@@ -82,7 +83,7 @@ Stack: FastAPI + MongoDB Atlas + ChromaDB + Next.js 14 + Groq + tree-sitter + se
 | Vector DB | ChromaDB (local) |
 | LLM Generation | llama-3.3-70b-versatile via Groq |
 | LLM Enrichment/Classification | llama-3.1-8b-instant via Groq |
-| Embeddings | BAAI/bge-small-en-v1.5 via sentence-transformers (local) |
+| Embeddings | HuggingFace Inference API — BAAI/bge-base-en-v1.5 (768 dimensions) |
 | AST Parsing | tree-sitter (Python, JS, TS, Java) |
 | Keyword Search | rank-bm25 |
 | Reranking | cross-encoder/ms-marco-MiniLM-L-6-v2 |
@@ -191,7 +192,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 |---|---|
 | Generation | llama-3.3-70b-versatile (Groq) |
 | Enrichment + Classification | llama-3.1-8b-instant (Groq) |
-| Embeddings | BAAI/bge-small-en-v1.5 (local) |
+| Embeddings | BAAI/bge-base-en-v1.5 via HuggingFace Inference API |
 | Reranking | cross-encoder/ms-marco-MiniLM-L-6-v2 (local) |
 
 ---

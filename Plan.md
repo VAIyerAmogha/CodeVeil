@@ -364,6 +364,8 @@ Auth and database connections come last. Build the working product core first.
 | 5.1 JWT + user model | DONE |
 | 5.2 Auth routes | DONE |
 | 5.3 Wire auth | DONE |
+| Embedder: Voyage AI migration | SUPERSEDED |
+| Embedder: HuggingFace Inference API migration | DONE |
 | 6.1 MongoDB Atlas persistence | TODO |
 | 6.2 ChromaDB + BM25 persistence | TODO |
 | 7.1 Evaluation | TODO |

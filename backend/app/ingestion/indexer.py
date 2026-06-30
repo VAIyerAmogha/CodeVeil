@@ -11,7 +11,6 @@ from app.db.mongodb import get_database
 from app.ingestion.language_detector import detect_language, is_ast_supported
 from app.ingestion.ast_chunker import chunk_repo
 from app.ingestion.fallback_chunker import chunk_file_fallback, chunk_content_fallback
-from app.ingestion.enricher import enrich_chunks
 from app.services.indexing_job import update_progress, set_status
 from app.ingestion.embedder import embed_texts
 from app.ingestion.github_fetcher import fetch_all_files
@@ -168,7 +167,6 @@ async def index_repo(repo_id: str, github_url: str, job_id: str) -> Dict[str, in
     await update_progress(job_id, files_processed=files_processed)
 
     if all_repo_chunks:
-        all_repo_chunks = await enrich_chunks(all_repo_chunks)
         chunks_generated = len(all_repo_chunks)
         await update_progress(job_id, chunks_generated=chunks_generated)
 
@@ -274,7 +272,6 @@ async def process_batch(repo_id: str, github_url: str, job_id: str) -> Dict:
             all_chunks.extend(file_chunks)
 
     if all_chunks:
-        all_chunks = await enrich_chunks(all_chunks)
         await store_chunks_with_embeddings(repo_id, all_chunks)
         await _append_bm25_mongo(repo_id, all_chunks)
 
