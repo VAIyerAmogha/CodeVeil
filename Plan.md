@@ -374,3 +374,5 @@ Auth and database connections come last. Build the working product core first.
 | 8.2 Frontend polish + E2E | TODO |
 | 9.1 Backend deploy | TODO |
 | 9.2 Frontend deploy | TODO |
+| Risk Identification tab | DONE |
+| Persistent Background Risk Analysis | DONE |

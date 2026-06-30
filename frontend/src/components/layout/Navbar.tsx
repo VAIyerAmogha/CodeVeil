@@ -32,7 +32,7 @@ export default function Navbar() {
           <span className="text-lg md:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-emerald-600 tracking-tight">CodeVeil</span>
         </Link>
         <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-medium">
-          <Link href="/dashboard" className="text-green-100/70 hover:text-green-400 transition-colors hidden sm:block">Dashboard</Link>
+          <Link href="/dashboard" className="text-green-100/70 hover:text-green-400 transition-colors">Dashboard</Link>
           {isAuthenticated && userData ? (
             <div className="flex items-center gap-3 md:gap-4">
               <div className="flex items-center gap-2 border-r border-green-500/20 pr-3 md:pr-4">

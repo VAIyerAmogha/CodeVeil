@@ -16,6 +16,7 @@ import RetrievalStats from '@/components/query/RetrievalStats';
 import QueryHistory from '@/components/query/QueryHistory';
 import CodeViewer from '@/components/code/CodeViewer';
 import { Citation } from '@/types/query';
+import RiskReport from '@/components/repository/RiskReport';
 
 export default function RepositoryPage() {
   const { id } = useParams() as { id: string };
@@ -25,7 +26,7 @@ export default function RepositoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'risks'>('overview');
 
   const {
     state: queryState,
@@ -105,11 +106,11 @@ export default function RepositoryPage() {
         <div className="flex flex-col lg:grid lg:grid-cols-3 lg:gap-8">
 
           {/* Left Column */}
-          <div className="lg:col-span-1 flex flex-col h-[calc(100vh-80px)] sticky top-6">
+          <div className="lg:col-span-1 flex flex-col lg:h-[calc(100vh-80px)] lg:sticky top-6 mb-8 lg:mb-0">
             <RepoHeader repo={repo} />
 
             {/* Tabs */}
-            <div className="flex border-b border-green-500/20 mt-4 mb-4">
+            <div className="flex overflow-x-auto whitespace-nowrap border-b border-green-500/20 mt-4 mb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <button
                 onClick={() => setActiveTab('overview')}
                 className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'overview' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
@@ -122,6 +123,12 @@ export default function RepositoryPage() {
               >
                 Query History
               </button>
+              <button
+                onClick={() => setActiveTab('risks')}
+                className={`px-4 py-2 font-medium transition-colors border-b-2 flex-1 ${activeTab === 'risks' ? 'text-green-300 border-green-500' : 'text-green-50/50 border-transparent hover:text-green-50/80'}`}
+              >
+                Risk Analysis
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 pb-10 scrollbar-thin scrollbar-thumb-green-500/20">
@@ -130,8 +137,13 @@ export default function RepositoryPage() {
                   <RepoStats repo={repo} job={job} />
                   <AISummary summary={repo.ai_summary} />
                 </div>
-              ) : (
+              ) : activeTab === 'history' ? (
                 <QueryHistory repoId={id} onSelect={setResult} />
+              ) : (
+                <RiskReport
+                  repoId={id}
+                  onCitationClick={(c) => setSelectedCitation(c)}
+                />
               )}
             </div>
           </div>

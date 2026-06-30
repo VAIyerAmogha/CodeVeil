@@ -11,6 +11,7 @@ from app.ingestion.indexer import index_repo
 from app.services.file_service import get_file_content
 from app.services.query_service import get_queries_for_repo
 from app.core.auth.dependencies import get_current_user
+from app.services.risk_analyzer import run_risk_analysis, start_risk_analysis
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
 
@@ -217,6 +218,36 @@ async def get_repository(repo_id: str, current_user: dict = Depends(get_current_
             "total_chunks": chunks_count
         }
     }
+
+@router.get("/{repo_id}/risks")
+async def get_repository_risks(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+        
+    repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
+    if not repo_doc or repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+            
+    report = await db["risk_reports"].find_one({"repo_id": repo_id})
+    if not report:
+        return {"status": "none"}
+    
+    report["_id"] = str(report["_id"])
+    return report
+
+@router.post("/{repo_id}/risks", status_code=status.HTTP_202_ACCEPTED)
+async def create_repository_risks(repo_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)) -> dict:
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+        
+    repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
+    if not repo_doc or repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    background_tasks.add_task(start_risk_analysis, repo_id)
+    return {"status": "started"}
 
 @router.delete("/{repo_id}")
 async def delete_repository(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:

@@ -6,7 +6,7 @@
 
 ## CURRENT STATUS
 
-**Current task:** Replace Voyage AI embedder with HuggingFace Inference API (BAAI/bge-base-en-v1.5)
+**Current task:** Risk Identification tab completed.
 
 ---
 
@@ -37,6 +37,8 @@ _(append after each session)_
 - Task 5.2 DONE — auth.py routes: POST /auth/signup, POST /auth/login, GET /auth/google, GET /auth/google/callback. httpx for token exchange. passlib bcrypt. Router registered in main.py.
 - Task 5.3 DONE — get_current_user applied to all routes (repositories, query, users). users.py GET /users/me added. Frontend: auth.ts verified, api.ts 401 interceptor added, auth/callback page handles Google OAuth redirect + setToken + hydrate authStore. Phase 5 COMPLETE.
 - Embedder switched from Voyage AI to HuggingFace Inference API (hf-inference provider, BAAI/bge-base-en-v1.5, 768 dims). Handles cold-start 503 waits, 429 rate-limit backoff, and 2D/3D response shapes. Batch size 50. voyageai SDK removed.
+- Risk Analysis tab DONE — risk_analyzer.py: 7 security categories via run_query(), severity parsed from LLM last line (SEVERITY: X), weighted score 0-100, grade A-F. GET /repositories/{id}/risks. Frontend: third left-column tab (Overview | Query History | Risk Analysis), RiskScoreGauge, RiskFindingCard (collapsible, severity color-coded), RiskReport (gate screen, cycling progress messages, sorted findings, re-analyze). Citations reuse existing selectedCitation state + CodeViewer in right column.
+- Persistent Risk Analysis DONE — Risk reports now save to MongoDB (`risk_reports` collection). Refactored to background tasks: `POST /repositories/{id}/risks` triggers `start_risk_analysis` async, while `GET /repositories/{id}/risks` fetches live status (none/running/complete/failed). Users can navigate away from the tab while analysis completes. UI updated with ReactMarkdown for readable, green-tinted finding highlights.
 ---
 
 ## BLOCKERS
@@ -63,6 +65,8 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-27: JWT stored in localStorage key cv_token, read only via lib/auth.ts — enforces single source of truth for auth token
 2026-06-30: Voyage AI free tier without payment method throttled to 3 RPM / 10K TPM — impractically slow for indexing. Switched to HuggingFace Inference API (hf-inference, BAAI/bge-base-en-v1.5, 768 dims) which has no card-gated rate limit on the free tier.
 2026-06-30: Gemini's 1500 req/day hard daily limit made production indexing unreliable. Voyage AI voyage-code-3: 200M token free tier (not request-count limited), purpose-built for code retrieval, no credit card required for signup.
+2026-06-30: Risk score = weighted deductions per category, CRITICAL=100% weight deduction, HIGH=70%, MEDIUM=40%, LOW=10%, NONE=0%. 7 categories, total_weight=100. Risk tab added as third left-column tab alongside Overview/History rather than separate page — keeps right-column Query panel always accessible during risk review.
+2026-06-30: Refactored Risk Analysis to run as a persistent BackgroundTask, enabling users to tab away or refresh without losing progress. Status tracked via MongoDB `risk_reports` collection (none/running/complete/failed).
 
 ---
 

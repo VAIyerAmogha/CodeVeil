@@ -1,5 +1,5 @@
 import { getToken } from './auth';
-import { Repository, Job } from '../types/repository';
+import { Repository, Job, RiskReport } from '../types/repository';
 import { Query } from '../types/query';
 import { User } from '../types/user';
 
@@ -80,6 +80,14 @@ export async function deleteRepo(repo_id: string): Promise<void> {
   return fetchWithAuth<void>(`/repositories/${repo_id}`, {
     method: 'DELETE',
   });
+}
+
+export async function getRisks(repo_id: string): Promise<RiskReport> {
+  return fetchWithAuth<RiskReport>(`/repositories/${repo_id}/risks`);
+}
+
+export async function runRisks(repo_id: string): Promise<{status: string}> {
+  return fetchWithAuth<{status: string}>(`/repositories/${repo_id}/risks`, { method: 'POST' });
 }
 
 export async function getCurrentUser(): Promise<User> {

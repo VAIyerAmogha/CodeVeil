@@ -1,3 +1,5 @@
+import { Citation } from './query';
+
 export type IndexingStatus = 'pending' | 'running' | 'complete' | 'failed';
 
 export interface Repository {
@@ -49,4 +51,27 @@ export interface Chunk {
   sha256: string;
   summary: string | null;
   chroma_id: string;
+}
+
+export interface RiskFinding {
+  id: string;
+  category: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+  answer: string;
+  citations: Citation[];
+  weight: number;
+}
+
+export interface RiskReport {
+  repo_id: string;
+  score: number;
+  grade: string;
+  findings: RiskFinding[];
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  analyzed_at: string;
+  status?: string;
+  error?: string;
 }
