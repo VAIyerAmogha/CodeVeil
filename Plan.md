@@ -376,3 +376,4 @@ Auth and database connections come last. Build the working product core first.
 | 9.2 Frontend deploy | TODO |
 | Risk Identification tab | DONE |
 | Persistent Background Risk Analysis | DONE |
+| Indexing: removed cron dependency | DONE |

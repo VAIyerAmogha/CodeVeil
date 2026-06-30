@@ -49,6 +49,13 @@ export async function indexRepo(github_url: string): Promise<{ job_id: string; r
   });
 }
 
+export async function triggerBatch(job_id: string): Promise<{ done: boolean, processed?: number }> {
+  return fetchWithAuth<{ done: boolean, processed?: number }>('/indexing/batch', {
+    method: 'POST',
+    body: JSON.stringify({ job_id }),
+  });
+}
+
 export async function getRepoStatus(repo_id: string): Promise<Job> {
   return fetchWithAuth<Job>(`/repositories/${repo_id}/status`);
 }

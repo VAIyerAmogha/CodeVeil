@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.services.indexing_job import get_active_job, get_job
+from app.services.indexing_job import get_job
 from app.ingestion.indexer import process_batch
 from app.db.mongodb import get_database
 
@@ -21,16 +21,6 @@ async def run_batch(request: BatchRequest) -> dict:
     )
     return result
 
-@router.post("/active-batch")
-async def run_active_batch() -> dict:
-    """Called by Vercel Cron. Finds active job and processes one batch."""
-    job = await get_active_job()
-    if not job:
-        return {"done": True, "message": "No active jobs"}
-    result = await process_batch(
-        job["repo_id"], job["github_url"], job["job_id"]
-    )
-    return result
 
 @router.get("/status/{job_id}")
 async def get_batch_status(job_id: str) -> dict:

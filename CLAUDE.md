@@ -39,6 +39,7 @@ _(append after each session)_
 - Embedder switched from Voyage AI to HuggingFace Inference API (hf-inference provider, BAAI/bge-base-en-v1.5, 768 dims). Handles cold-start 503 waits, 429 rate-limit backoff, and 2D/3D response shapes. Batch size 50. voyageai SDK removed.
 - Risk Analysis tab DONE — risk_analyzer.py: 7 security categories via run_query(), severity parsed from LLM last line (SEVERITY: X), weighted score 0-100, grade A-F. GET /repositories/{id}/risks. Frontend: third left-column tab (Overview | Query History | Risk Analysis), RiskScoreGauge, RiskFindingCard (collapsible, severity color-coded), RiskReport (gate screen, cycling progress messages, sorted findings, re-analyze). Citations reuse existing selectedCitation state + CodeViewer in right column.
 - Persistent Risk Analysis DONE — Risk reports now save to MongoDB (`risk_reports` collection). Refactored to background tasks: `POST /repositories/{id}/risks` triggers `start_risk_analysis` async, while `GET /repositories/{id}/risks` fetches live status (none/running/complete/failed). Users can navigate away from the tab while analysis completes. UI updated with ReactMarkdown for readable, green-tinted finding highlights.
+- Removed Vercel Cron dependency — Hobby plan only allows daily crons, incompatible with batched indexing. Frontend now drives batching via direct polling of /indexing/batch in a loop until done=true. Indexing is now faster (no waiting for cron ticks) and works on free tier.
 ---
 
 ## BLOCKERS
@@ -67,6 +68,7 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-30: Gemini's 1500 req/day hard daily limit made production indexing unreliable. Voyage AI voyage-code-3: 200M token free tier (not request-count limited), purpose-built for code retrieval, no credit card required for signup.
 2026-06-30: Risk score = weighted deductions per category, CRITICAL=100% weight deduction, HIGH=70%, MEDIUM=40%, LOW=10%, NONE=0%. 7 categories, total_weight=100. Risk tab added as third left-column tab alongside Overview/History rather than separate page — keeps right-column Query panel always accessible during risk review.
 2026-06-30: Refactored Risk Analysis to run as a persistent BackgroundTask, enabling users to tab away or refresh without losing progress. Status tracked via MongoDB `risk_reports` collection (none/running/complete/failed).
+2026-06-30: Vercel Hobby cron limited to once/day, removed /indexing/active-batch entirely. Frontend-driven polling replaces cron-driven batching — same MongoDB-queued architecture, just triggered by the client instead of a server cron.
 
 ---
 
