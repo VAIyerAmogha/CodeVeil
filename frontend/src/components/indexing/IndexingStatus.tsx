@@ -28,7 +28,8 @@ export default function IndexingStatus({ state, progress, error, repoId, jobStat
     return (
       <div className="w-full max-w-lg glass-panel border border-green-500/20 rounded-xl p-6 text-left">
         <h3 className="text-lg font-medium text-zinc-100 mb-4 flex items-center">
-          <span className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full mr-3"></span>
+          <span className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full mr-3">
+          </span>
           Indexing Repository...
         </h3>
         <ProgressTracker progress={progress} status={jobStatus} />
