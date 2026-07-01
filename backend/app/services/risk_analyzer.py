@@ -68,7 +68,7 @@ async def run_risk_analysis(repo_id: str) -> dict:
   for sq in SECURITY_QUESTIONS:
     question_with_suffix = sq["question"] + SEVERITY_PROMPT_SUFFIX
     try:
-      result = await run_query(repo_id, question_with_suffix, user_id=None)
+      result = await run_query(repo_id, question_with_suffix, user_id=None, save_to_db=False)
       answer = result.get("answer", "")
       citations = result.get("citations", [])
 

@@ -8,7 +8,7 @@ from app.generation.responder import generate_answer
 from app.db.mongodb import get_database
 
 
-async def run_query(repo_id: str, question: str, user_id: str | None = None) -> dict:
+async def run_query(repo_id: str, question: str, user_id: str | None = None, save_to_db: bool = True) -> dict:
     start_time = time.perf_counter()
 
     # 1. Classify query
@@ -49,11 +49,12 @@ async def run_query(repo_id: str, question: str, user_id: str | None = None) -> 
     }
 
     # Save to MongoDB
-    db = get_database()
-    if db is not None:
-        doc = dict(final_result)
-        result_id = await db["queries"].insert_one(doc)
-        final_result["id"] = str(result_id.inserted_id)
+    if save_to_db:
+        db = get_database()
+        if db is not None:
+            doc = dict(final_result)
+            result_id = await db["queries"].insert_one(doc)
+            final_result["id"] = str(result_id.inserted_id)
         
     return final_result
 
