@@ -1,5 +1,5 @@
 import { Sidebar } from "./Sidebar";
-import { Navbar } from "./Navbar";
+import Navbar from "./Navbar";
 
 export function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
