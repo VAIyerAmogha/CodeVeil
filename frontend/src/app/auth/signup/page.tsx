@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signup } from '@/lib/api';
+import { signup, API_URL } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export default function SignupPage() {
@@ -77,7 +77,7 @@ export default function SignupPage() {
         </form>
         
         <div className="mt-6">
-          <a href="http://localhost:8000/auth/google" className="block w-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white py-2 rounded-lg font-medium text-center transition-all">
+          <a href={`${API_URL}/auth/google`} className="block w-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white py-2 rounded-lg font-medium text-center transition-all">
             Sign in with Google
           </a>
         </div>

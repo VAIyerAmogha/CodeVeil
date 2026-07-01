@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
+    frontend_url: str = "http://localhost:3000"
 
 
 

@@ -33,7 +33,8 @@ async def login(credentials: UserLogin):
 
 @router.get("/google")
 async def google_login(request: Request):
-    redirect_uri = "http://localhost:8000/auth/google/callback"
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = f"{base_url}/auth/google/callback"
     params = {
         "client_id": settings.google_client_id,
         "redirect_uri": redirect_uri,
@@ -46,6 +47,7 @@ async def google_login(request: Request):
 
 @router.get("/google/callback")
 async def google_callback(code: str, request: Request):
-    redirect_uri = "http://localhost:8000/auth/google/callback"
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = f"{base_url}/auth/google/callback"
     token = await process_google_callback(code, redirect_uri)
-    return RedirectResponse(url=f"http://localhost:3000/auth/callback?token={token}")
+    return RedirectResponse(url=f"{settings.frontend_url}/auth/callback?token={token}")

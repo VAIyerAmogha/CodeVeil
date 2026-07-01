@@ -3,7 +3,7 @@ import { Repository, Job, RiskReport } from '../types/repository';
 import { Query } from '../types/query';
 import { User } from '../types/user';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
