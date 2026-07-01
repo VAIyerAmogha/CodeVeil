@@ -1,14 +1,10 @@
 import logging
 from typing import List, Dict, Any
-from sentence_transformers import CrossEncoder
 from app.db.mongodb import get_database
 from app.retrieval.bm25_retriever import retrieve_bm25
 from app.retrieval.dense_retriever import retrieve_dense
 
 logger = logging.getLogger(__name__)
-
-# Cross-encoder singleton at module level
-cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 
 def merge_results(
@@ -59,11 +55,8 @@ def rerank(
     if not chunks:
         return []
 
-    # Prepare input pairs
-    pairs = [(query, chunk.get("source_code", "")) for chunk in chunks]
-
-    # Predict scores
-    scores = cross_encoder.predict(pairs)
+    # Calculate fallback scores since cross_encoder is removed
+    scores = [(chunk.get("dense_score", 0.0) + chunk.get("bm25_score", 0.0)) for chunk in chunks]
 
     # Attach scores to the chunks
     for chunk, score in zip(chunks, scores):
