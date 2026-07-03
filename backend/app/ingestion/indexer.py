@@ -1,5 +1,7 @@
 import tempfile
 import hashlib
+import re
+import asyncio
 import uuid
 import os
 from typing import List, Dict, Optional, Any
@@ -15,6 +17,23 @@ from app.services.indexing_job import update_progress, set_status
 from app.ingestion.embedder import embed_texts
 from app.ingestion.github_fetcher import fetch_all_files
 from app.ingestion.cloner import validate_github_url
+
+
+def tokenize_code(text: str) -> list[str]:
+    """
+    Tokenize source code text for BM25 indexing.
+    Splits on whitespace, camelCase, and snake_case boundaries so that
+    identifiers like 'getUserById' or 'fetch_all_files' produce meaningful tokens.
+    """
+    tokens = []
+    for word in re.split(r'\s+', text):
+        # Split camelCase: getUserById → get User By Id
+        word = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', word)
+        # Normalize non-alphanumeric characters (underscores, dots, parens, etc.) to spaces
+        word = re.sub(r'[^a-zA-Z0-9]+', ' ', word)
+        tokens.extend(word.lower().split())
+    # Drop single-character tokens (noise)
+    return [t for t in tokens if len(t) > 1]
 
 
 async def store_chunks_with_embeddings(repo_id: str, chunks: List[Dict[str, Any]]) -> None:
@@ -51,7 +70,7 @@ async def store_chunks_with_embeddings(repo_id: str, chunks: List[Dict[str, Any]
 
 
 async def build_and_save_bm25_mongo(repo_id: str, chunks: List[Dict]) -> None:
-    corpus = [c.get("source_code", "").split() for c in chunks]
+    corpus = [tokenize_code(c.get("source_code", "")) for c in chunks]
     chunk_ids = [c.get("chroma_id", "") for c in chunks]
     db = get_database()
     await db["bm25_indexes"].update_one(
@@ -184,7 +203,7 @@ async def index_repo(repo_id: str, github_url: str, job_id: str) -> Dict[str, in
 async def _append_bm25_mongo(repo_id: str, chunks: List[Dict]) -> None:
     """Append new chunks to existing BM25 corpus in MongoDB."""
     db = get_database()
-    new_corpus = [c.get("source_code", "").split() for c in chunks]
+    new_corpus = [tokenize_code(c.get("source_code", "")) for c in chunks]
     new_ids = [c.get("chroma_id", "") for c in chunks]
     existing = await db["bm25_indexes"].find_one({"repo_id": repo_id})
     if existing:
@@ -217,59 +236,91 @@ async def prepare_index(repo_id: str, github_url: str, job_id: str) -> int:
     await set_pending_files(job_id, pending)
     return len(pending)
 
-async def process_batch(repo_id: str, github_url: str, job_id: str) -> Dict:
-    """Fetch content for one batch, chunk, embed, store. Returns {"done": bool, "processed": int}"""
+async def _fetch_and_chunk_file(
+    client: Any,
+    sem: asyncio.Semaphore,
+    owner: str,
+    repo_name: str,
+    file_info: dict,
+) -> List[Dict]:
+    """
+    Fetch one file from GitHub and chunk it, inside a semaphore.
+    Returns list of chunks (empty on any error).
+    """
     from app.ingestion.github_fetcher import fetch_file_content
+
+    async with sem:
+        path = file_info["path"]
+        sha = file_info.get("sha", "")
+        language = detect_language(path)
+        if not language:
+            return []
+
+        content_bytes = await fetch_file_content(client, owner, repo_name, path)
+        if not content_bytes:
+            return []
+
+        if is_ast_supported(language):
+            suffix = Path(path).suffix
+            try:
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                    tmp.write(content_bytes)
+                    tmp_path = tmp.name
+                try:
+                    file_chunks = chunk_repo(tmp_path, language)
+                except Exception:
+                    content_str = content_bytes.decode("utf-8", errors="replace")
+                    file_chunks = chunk_content_fallback(content_str, path, language)
+                finally:
+                    os.unlink(tmp_path)
+            except Exception:
+                return []
+        else:
+            content_str = content_bytes.decode("utf-8", errors="replace")
+            file_chunks = chunk_content_fallback(content_str, path, language)
+
+        for chunk in file_chunks:
+            chunk["file_path"] = path
+            chunk["sha256"] = sha
+
+        return file_chunks
+
+
+async def process_batch(repo_id: str, github_url: str, job_id: str) -> Dict:
+    """
+    Fetch content for one batch concurrently, chunk, embed, store.
+    Returns {"done": bool, "processed": int}
+
+    All files in the batch are fetched in parallel (Semaphore cap=10),
+    replacing the previous sequential for-loop.
+    """
     from app.services.indexing_job import pop_batch, set_status, get_job, update_progress
     from app.config import settings
     import httpx
-    
+
     batch = await pop_batch(job_id, batch_size=20)
     if not batch:
         await set_status(job_id, "complete")
         return {"done": True, "processed": 0}
 
     owner, repo_name = validate_github_url(github_url)
-    all_chunks = []
+    sem = asyncio.Semaphore(10)
 
     async with httpx.AsyncClient(
-        headers={"Accept": "application/vnd.github+json",
-                 **({} if not settings.github_token else {"Authorization": f"Bearer {settings.github_token}"})}
+        headers={
+            "Accept": "application/vnd.github+json",
+            **({} if not settings.github_token else {"Authorization": f"Bearer {settings.github_token}"})
+        },
+        timeout=30.0
     ) as client:
-        for file_info in batch:
-            path = file_info["path"]
-            sha = file_info["sha"]
-            language = detect_language(path)
-            if not language:
-                continue
+        tasks = [
+            _fetch_and_chunk_file(client, sem, owner, repo_name, f)
+            for f in batch
+        ]
+        results = await asyncio.gather(*tasks)
 
-            content_bytes = await fetch_file_content(client, owner, repo_name, path)
-            if not content_bytes:
-                continue
-
-            if is_ast_supported(language):
-                suffix = Path(path).suffix
-                try:
-                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                        tmp.write(content_bytes)
-                        tmp_path = tmp.name
-                    try:
-                        file_chunks = chunk_repo(tmp_path, language)
-                    except Exception:
-                        content_str = content_bytes.decode("utf-8", errors="replace")
-                        file_chunks = chunk_content_fallback(content_str, path, language)
-                    finally:
-                        os.unlink(tmp_path)
-                except Exception:
-                    continue
-            else:
-                content_str = content_bytes.decode("utf-8", errors="replace")
-                file_chunks = chunk_content_fallback(content_str, path, language)
-
-            for chunk in file_chunks:
-                chunk["file_path"] = path
-                chunk["sha256"] = sha
-            all_chunks.extend(file_chunks)
+    # Flatten list-of-lists
+    all_chunks = [chunk for file_chunks in results for chunk in file_chunks]
 
     if all_chunks:
         await store_chunks_with_embeddings(repo_id, all_chunks)
@@ -279,3 +330,4 @@ async def process_batch(repo_id: str, github_url: str, job_id: str) -> Dict:
     if job_doc:
         await update_progress(job_id, files_processed=job_doc.get("processed_file_count", 0))
     return {"done": False, "processed": len(batch)}
+

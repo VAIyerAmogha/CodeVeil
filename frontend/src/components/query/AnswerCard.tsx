@@ -5,9 +5,10 @@ interface AnswerCardProps {
   answer: string;
   latencyMs: number;
   queryType: string;
+  confidenceLevel?: string;
 }
 
-export default function AnswerCard({ answer, latencyMs, queryType }: AnswerCardProps) {
+export default function AnswerCard({ answer, latencyMs, queryType, confidenceLevel = 'high' }: AnswerCardProps) {
   const getBadgeColor = (type: string) => {
     if (type === 'lookup') return 'bg-emerald-500/20 text-emerald-400';
     if (type === 'explanation') return 'bg-purple-500/20 text-purple-400';
@@ -28,7 +29,41 @@ export default function AnswerCard({ answer, latencyMs, queryType }: AnswerCardP
           {queryType || 'unknown'}
         </span>
       </div>
-      
+
+      {/* Reliability banner — shown for medium/low/none confidence */}
+      {(confidenceLevel === 'medium') && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <span className="text-amber-400 text-sm mt-0.5 shrink-0">⚠</span>
+          <p className="text-xs text-amber-300/90 leading-relaxed">
+            <span className="font-semibold">Partial context retrieved.</span>{' '}
+            This answer is based on limited code coverage and may be incomplete.
+            Try a more specific query using exact function or class names.
+          </p>
+        </div>
+      )}
+
+      {(confidenceLevel === 'low') && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30">
+          <span className="text-red-400 text-sm mt-0.5 shrink-0">⚠</span>
+          <p className="text-xs text-red-300/90 leading-relaxed">
+            <span className="font-semibold">Limited context retrieved.</span>{' '}
+            Very little relevant code was found. The answer below may be unreliable.
+            Consider querying with the exact function name, class, or file path.
+          </p>
+        </div>
+      )}
+
+      {(confidenceLevel === 'none') && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-red-500/15 border border-red-500/40">
+          <span className="text-red-400 text-sm mt-0.5 shrink-0">✕</span>
+          <p className="text-xs text-red-300/90 leading-relaxed">
+            <span className="font-semibold">No relevant code found.</span>{' '}
+            The index does not appear to contain information for this query.
+            Try re-indexing the repository or rephrasing with specific identifiers.
+          </p>
+        </div>
+      )}
+
       <div className="text-sm">
         <ReactMarkdown
           components={{

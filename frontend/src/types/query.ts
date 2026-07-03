@@ -10,6 +10,8 @@ export interface RetrievalScores {
   rerank_top: number;
   chunks_retrieved: number;
   chunks_used: number;
+  confidence: number;           // 0-100, multi-factor score from server
+  confidence_level: string;     // "high" | "medium" | "low" | "none"
 }
 
 export interface Query {

@@ -377,3 +377,4 @@ Auth and database connections come last. Build the working product core first.
 | Risk Identification tab | DONE |
 | Persistent Background Risk Analysis | DONE |
 | Indexing: removed cron dependency | DONE |
+| Query Pipeline Reliability Overhaul | DONE |

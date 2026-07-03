@@ -6,7 +6,7 @@
 
 ## CURRENT STATUS
 
-**Current task:** Risk Identification tab completed.
+**Current task:** Query pipeline reliability overhaul complete. All retrieval, ranking, and LLM generation stages are now fully async and correctly wired end-to-end.
 
 ---
 
@@ -40,6 +40,7 @@ _(append after each session)_
 - Risk Analysis tab DONE — risk_analyzer.py: 7 security categories via run_query(), severity parsed from LLM last line (SEVERITY: X), weighted score 0-100, grade A-F. GET /repositories/{id}/risks. Frontend: third left-column tab (Overview | Query History | Risk Analysis), RiskScoreGauge, RiskFindingCard (collapsible, severity color-coded), RiskReport (gate screen, cycling progress messages, sorted findings, re-analyze). Citations reuse existing selectedCitation state + CodeViewer in right column.
 - Persistent Risk Analysis DONE — Risk reports now save to MongoDB (`risk_reports` collection). Refactored to background tasks: `POST /repositories/{id}/risks` triggers `start_risk_analysis` async, while `GET /repositories/{id}/risks` fetches live status (none/running/complete/failed). Users can navigate away from the tab while analysis completes. UI updated with ReactMarkdown for readable, green-tinted finding highlights.
 - Removed Vercel Cron dependency — Hobby plan only allows daily crons, incompatible with batched indexing. Frontend now drives batching via direct polling of /indexing/batch in a loop until done=true. Indexing is now faster (no waiting for cron ticks) and works on free tier.
+- Query Pipeline Reliability Overhaul — Fixed 7 bugs across the full retrieval + generation stack. dense_retriever now returns flat metadata (file_path, start_line, etc.) instead of a nested "metadata" dict. hybrid.py runs BM25 + Dense in parallel via asyncio.gather; merge now preserves dense metadata; reranker uses weighted formula (dense×0.75 + bm25_norm×0.25). classifier.py and responder.py migrated from sync Groq to AsyncGroq so the event loop is never blocked. query_service.py adds a 90s hard pipeline timeout via asyncio.wait_for. BM25 cache now invalidates on re-index using created_at as a bust key. context_builder callee expansion restricted to actual call sites (identifiers followed by "(") with stop-word filtering. repositories.py updated to await generate_repo_summary directly.
 ---
 
 ## BLOCKERS
@@ -69,6 +70,14 @@ _(format: YYYY-MM-DD: decision — reason)_
 2026-06-30: Risk score = weighted deductions per category, CRITICAL=100% weight deduction, HIGH=70%, MEDIUM=40%, LOW=10%, NONE=0%. 7 categories, total_weight=100. Risk tab added as third left-column tab alongside Overview/History rather than separate page — keeps right-column Query panel always accessible during risk review.
 2026-06-30: Refactored Risk Analysis to run as a persistent BackgroundTask, enabling users to tab away or refresh without losing progress. Status tracked via MongoDB `risk_reports` collection (none/running/complete/failed).
 2026-06-30: Vercel Hobby cron limited to once/day, removed /indexing/active-batch entirely. Frontend-driven polling replaces cron-driven batching — same MongoDB-queued architecture, just triggered by the client instead of a server cron.
+2026-07-03: dense_retriever $project now returns all metadata fields flat — nested "metadata" dict caused all file_path/start_line/end_line to be None downstream, breaking citations entirely.
+2026-07-03: BM25 + Dense retrievers now run in parallel via asyncio.gather — removes a sequential I/O dependency that added unnecessary latency on every query.
+2026-07-03: Reranker switched from raw score sum to weighted (dense×0.75 + normalised_bm25×0.25) — BM25 raw scores (unbounded floats) were swamping dense cosine scores (0-1), making ranking order essentially random.
+2026-07-03: classifier.py and responder.py migrated to AsyncGroq — sync Groq blocked the entire FastAPI event loop during classification and LLM generation, causing request queuing and timeouts.
+2026-07-03: 90s asyncio.wait_for timeout added to query pipeline in query_service.py — prevents HuggingFace cold-start or Groq delays from hanging connections indefinitely.
+2026-07-03: BM25 in-memory cache now uses MongoDB created_at as a cache-bust key — re-indexing a repo was leaving stale BM25 data in memory for the entire process lifetime.
+2026-07-03: context_builder callee expansion restricted to call-site identifiers (regex: word followed by "(") + stop-word filter — previous extraction of all tokens produced MongoDB $in queries with hundreds of generic words, making lookups expensive and results noisy.
+2026-07-03: Context capped at 12k chars in responder.py — prevents silent token-limit failures on large repos where concatenated chunks exceeded the model context window.
 
 ---
 

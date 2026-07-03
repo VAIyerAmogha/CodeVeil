@@ -101,14 +101,11 @@ async def index_repository(request: IndexRequest, background_tasks: BackgroundTa
     
     existing_repo = await db["repositories"].find_one({"github_url": request.github_url, "user_id": current_user["user_id"]})
     
-    # Generate summary synchronously using executor or directly since it's an async route but the groq client call is sync in responder right now
+    # generate_repo_summary is async (uses AsyncGroq) — await directly
     from app.generation.responder import generate_repo_summary
-    loop = asyncio.get_event_loop()
-    ai_summary = await loop.run_in_executor(
-        None, 
-        generate_repo_summary, 
-        metadata.get("repo_name"), 
-        metadata.get("description", ""), 
+    ai_summary = await generate_repo_summary(
+        metadata.get("repo_name"),
+        metadata.get("description", ""),
         metadata.get("languages", {})
     )
     

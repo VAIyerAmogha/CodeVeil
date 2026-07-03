@@ -163,6 +163,7 @@ export default function RepositoryPage() {
                   answer={answer}
                   latencyMs={latencyMs}
                   queryType={queryType}
+                  confidenceLevel={retrievalScores?.confidence_level ?? 'high'}
                 />
                 <CitationList
                   citations={citations}
