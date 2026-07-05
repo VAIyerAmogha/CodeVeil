@@ -16,7 +16,6 @@ import CodeViewer from '@/components/code/CodeViewer';
 import { Citation } from '@/types/query';
 import RiskReport from '@/components/repository/RiskReport';
 
-// Panel width in px — must match the w-80 Tailwind class (320px)
 const PANEL_W = 320;
 
 export default function RepositoryPage() {
@@ -29,8 +28,9 @@ export default function RepositoryPage() {
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [activeTab, setActiveTab] = useState<'history' | 'risks'>('history');
   const [chatOpen, setChatOpen] = useState(false);
-  // true while the spotlight section is visible in the viewport
   const [spotlightInView, setSpotlightInView] = useState(true);
+  // Track viewport size to switch between push (desktop) and overlay (mobile)
+  const [isMobile, setIsMobile] = useState(false);
 
   const spotlightRef = useRef<HTMLElement>(null);
 
@@ -46,6 +46,19 @@ export default function RepositoryPage() {
     setResult,
   } = useQuery();
 
+  // Detect mobile breakpoint
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      // Close panel when resizing to desktop to avoid stale overlay state
+      if (!e.matches) setChatOpen(false);
+    };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
   // IntersectionObserver: show right panel when spotlight scrolls out of view
   useEffect(() => {
     const el = spotlightRef.current;
@@ -56,7 +69,7 @@ export default function RepositoryPage() {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [loading]); // re-run after loading so ref is attached
+  }, [loading]);
 
   useEffect(() => {
     async function fetchData() {
@@ -107,8 +120,10 @@ export default function RepositoryPage() {
     );
   }
 
-  const rightPanelOpen = !spotlightInView;
-  const leftPx  = chatOpen      ? PANEL_W : 0;
+  // Right panel: never on mobile
+  const rightPanelOpen = !spotlightInView && !isMobile;
+  // Left panel pushes content only on desktop
+  const leftPx  = (!isMobile && chatOpen) ? PANEL_W : 0;
   const rightPx = rightPanelOpen ? PANEL_W : 0;
 
   const statsItems = [
@@ -121,13 +136,33 @@ export default function RepositoryPage() {
   return (
     <div className="min-h-screen bg-transparent text-green-50">
 
-      {/* ── FIXED LEFT PANEL (chat / history / risk) ── */}
+      {/* ── Mobile backdrop for left panel ── */}
+      {isMobile && chatOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setChatOpen(false)}
+        />
+      )}
+
+      {/* ── LEFT PANEL (chat / history / risk) ──
+          Desktop: width-collapse pushes content.
+          Mobile: full-width slide-in overlay above backdrop. */}
       <aside
         aria-hidden={!chatOpen}
-        style={{ width: chatOpen ? PANEL_W : 0 }}
-        className="fixed left-0 top-16 bottom-0 z-40 flex flex-col bg-black/70 backdrop-blur-xl border-r border-green-500/20 overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          width: PANEL_W,
+          // Desktop: clip via max-width so it doesn't overflow; Mobile: translate in/out
+          transform: isMobile
+            ? (chatOpen ? 'translateX(0)' : `translateX(-${PANEL_W}px)`)
+            : 'translateX(0)',
+          // On desktop we still need to hide it when closed — clip with left offset + overflow hidden on parent
+          // We keep width fixed and rely on main padding for the push effect on desktop.
+          // Actually: on desktop, translate too so there's no ghost space.
+          // Unified: both use translate. Main padding compensates on desktop.
+        }}
+        className="fixed left-0 top-16 bottom-0 z-50 flex flex-col bg-black/70 backdrop-blur-xl border-r border-green-500/20 overflow-hidden transition-transform duration-300 ease-in-out"
       >
-        <div style={{ width: PANEL_W }} className="flex flex-col h-full p-5 overflow-hidden">
+        <div className="flex flex-col h-full p-5 overflow-hidden" style={{ width: PANEL_W }}>
           {/* close */}
           <div className="flex justify-end mb-3 flex-shrink-0">
             <button id="close-chat-panel" aria-label="Close panel" onClick={() => setChatOpen(false)}
@@ -157,15 +192,14 @@ export default function RepositoryPage() {
         </div>
       </aside>
 
-      {/* ── FIXED RIGHT PANEL (stats + summary, appears when spotlight scrolls out) ── */}
+      {/* ── RIGHT PANEL (stats + summary) — desktop only ── */}
       <aside
         aria-hidden={!rightPanelOpen}
         style={{ width: rightPanelOpen ? PANEL_W : 0 }}
-        className="fixed right-0 top-16 bottom-0 z-40 flex flex-col bg-black/70 backdrop-blur-xl border-l border-green-500/20 overflow-hidden transition-all duration-300 ease-in-out"
+        className="hidden md:flex fixed right-0 top-16 bottom-0 z-40 flex-col bg-black/70 backdrop-blur-xl border-l border-green-500/20 overflow-hidden transition-all duration-300 ease-in-out"
       >
         <div style={{ width: PANEL_W }} className="flex flex-col h-full p-5 overflow-y-auto scrollbar-thin scrollbar-thumb-green-500/20">
           <p className="text-xs font-semibold text-green-300 uppercase tracking-widest mb-4 flex-shrink-0">Repository</p>
-          {/* stat cards */}
           <div className="grid grid-cols-2 gap-2 mb-4">
             {statsItems.map(({ label, value }) => (
               <div key={label} className="glass-panel border border-green-500/20 rounded-xl p-3 flex flex-col gap-1">
@@ -174,7 +208,6 @@ export default function RepositoryPage() {
               </div>
             ))}
           </div>
-          {/* summary */}
           <div className="glass-panel border border-green-500/30 border-l-4 border-l-green-400 rounded-xl p-4 relative overflow-hidden">
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-green-500/15 text-green-400">
@@ -192,7 +225,7 @@ export default function RepositoryPage() {
         </div>
       </aside>
 
-      {/* ── MAIN SCROLLABLE CONTENT — padding matches open panel widths ── */}
+      {/* ── MAIN — padding pushes content on desktop; full-width on mobile ── */}
       <main
         style={{
           paddingLeft:  leftPx,
@@ -201,43 +234,46 @@ export default function RepositoryPage() {
         }}
         className="min-h-screen flex flex-col"
       >
-        <div className="mx-auto w-full max-w-3xl px-6 md:px-10 py-8">
+        <div className="mx-auto w-full max-w-3xl px-4 md:px-10 py-6 md:py-8">
 
           {/* Header + toggle */}
-          <div className="flex items-start gap-4 mb-8">
+          <div className="flex items-start gap-3 mb-6 md:mb-8">
             <div className="flex-1 min-w-0">
               <RepoHeader repo={repo} />
             </div>
+            {/* Toggle button: icon-only on mobile, icon+label on desktop */}
             <button
               id="toggle-chat-panel"
               aria-label={chatOpen ? 'Close panel' : 'Open panel'}
               onClick={() => setChatOpen(v => !v)}
               className={[
-                'flex-shrink-0 mt-1 flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200',
+                'flex-shrink-0 mt-1 flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200',
                 chatOpen
                   ? 'bg-green-500/20 border-green-400/40 text-green-300 hover:bg-green-500/30'
                   : 'bg-black/40 border-green-500/30 text-green-100/70 hover:bg-green-900/30 hover:text-green-200',
               ].join(' ')}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3z" />
               </svg>
-              {chatOpen ? 'Hide Panel' : 'Show Panel'}
+              <span className="hidden md:inline">
+                {chatOpen ? 'Hide Panel' : 'Show Panel'}
+              </span>
             </button>
           </div>
 
           {/* ── SPOTLIGHT: Stats + AI Summary ── */}
-          <section ref={spotlightRef} aria-label="Repository overview" className="mb-8">
+          <section ref={spotlightRef} aria-label="Repository overview" className="mb-6 md:mb-8">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
               {statsItems.map(({ label, value }) => (
-                <div key={label} className="glass-panel border border-green-500/20 rounded-xl p-4 flex flex-col gap-1 hover:border-green-400/40 transition-colors">
-                  <span className="text-xs font-medium text-green-100/50 uppercase tracking-wider">{label}</span>
-                  <span className="text-xl font-bold text-green-50">{value}</span>
+                <div key={label} className="glass-panel border border-green-500/20 rounded-xl p-3 md:p-4 flex flex-col gap-1 hover:border-green-400/40 transition-colors">
+                  <span className="text-[10px] md:text-xs font-medium text-green-100/50 uppercase tracking-wider">{label}</span>
+                  <span className="text-lg md:text-xl font-bold text-green-50">{value}</span>
                 </div>
               ))}
             </div>
-            <div className="glass-panel border border-green-500/30 border-l-4 border-l-green-400 rounded-xl p-6 relative overflow-hidden">
+            <div className="glass-panel border border-green-500/30 border-l-4 border-l-green-400 rounded-xl p-4 md:p-6 relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-48 h-48 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
               <div className="flex items-center gap-2 mb-3">
                 <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-green-500/15 text-green-400">

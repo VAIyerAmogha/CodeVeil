@@ -24,6 +24,17 @@ async def get_repository_queries(repo_id: str, current_user: dict = Depends(get_
             raise HTTPException(status_code=403, detail="Forbidden")
     return await get_queries_for_repo(repo_id)
 
+@router.get("/{repo_id}/files")
+async def get_repository_files(repo_id: str, current_user: dict = Depends(get_current_user)) -> dict:
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    repo_doc = await db["repositories"].find_one({"repo_id": repo_id})
+    if not repo_doc or repo_doc.get("user_id") != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    file_paths = await db["chunks"].distinct("file_path", {"repo_id": repo_id})
+    return {"files": sorted(f for f in file_paths if f)}
+
 @router.get("/{repo_id}/file")
 async def get_repository_file(repo_id: str, path: str, current_user: dict = Depends(get_current_user)) -> dict:
     return await get_file_content(repo_id, path)

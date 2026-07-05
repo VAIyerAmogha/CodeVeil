@@ -36,7 +36,7 @@ export default function RepoCard({ repo, onDelete }: { repo: Repository, onDelet
     <>
       <Link 
         href={`/repository/${repo.id}`}
-        className="flex flex-col glass-panel border border-green-500/20 hover:border-green-500/40 rounded-xl p-5 cursor-pointer transition-colors h-[200px]"
+        className="flex flex-col glass-panel border border-green-500/20 hover:border-green-500/40 rounded-xl p-5 cursor-pointer transition-colors h-[220px]"
       >
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1 overflow-hidden pr-2">
@@ -86,8 +86,22 @@ export default function RepoCard({ repo, onDelete }: { repo: Repository, onDelet
           {repo.ai_summary ? truncate(repo.ai_summary, 100) : 'No summary available.'}
         </p>
 
-        <div className="text-xs text-green-100/40 mt-auto">
-          Last indexed: {repo.last_indexed_at ? formatDate(repo.last_indexed_at) : 'Never'}
+        <div className="flex items-center justify-between mt-auto">
+          <div className="text-xs text-green-100/40">
+            Last indexed: {repo.last_indexed_at ? formatDate(repo.last_indexed_at) : 'Never'}
+          </div>
+          {repo.indexed_status === 'complete' && (
+            <Link
+              href={`/repository/${repo.id}/code`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-300 hover:bg-green-500/20 hover:border-green-400/40 transition-all text-xs font-medium"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              View Code
+            </Link>
+          )}
         </div>
       </Link>
 

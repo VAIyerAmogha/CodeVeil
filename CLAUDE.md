@@ -6,7 +6,7 @@
 
 ## CURRENT STATUS
 
-**Current task:** Query pipeline reliability overhaul complete. All retrieval, ranking, and LLM generation stages are now fully async and correctly wired end-to-end.
+**Current task:** Code Explorer feature complete. File tree + Monaco viewer page added to all indexed repos.
 
 ---
 
@@ -41,6 +41,7 @@ _(append after each session)_
 - Persistent Risk Analysis DONE — Risk reports now save to MongoDB (`risk_reports` collection). Refactored to background tasks: `POST /repositories/{id}/risks` triggers `start_risk_analysis` async, while `GET /repositories/{id}/risks` fetches live status (none/running/complete/failed). Users can navigate away from the tab while analysis completes. UI updated with ReactMarkdown for readable, green-tinted finding highlights.
 - Removed Vercel Cron dependency — Hobby plan only allows daily crons, incompatible with batched indexing. Frontend now drives batching via direct polling of /indexing/batch in a loop until done=true. Indexing is now faster (no waiting for cron ticks) and works on free tier.
 - Query Pipeline Reliability Overhaul — Fixed 7 bugs across the full retrieval + generation stack. dense_retriever now returns flat metadata (file_path, start_line, etc.) instead of a nested "metadata" dict. hybrid.py runs BM25 + Dense in parallel via asyncio.gather; merge now preserves dense metadata; reranker uses weighted formula (dense×0.75 + bm25_norm×0.25). classifier.py and responder.py migrated from sync Groq to AsyncGroq so the event loop is never blocked. query_service.py adds a 90s hard pipeline timeout via asyncio.wait_for. BM25 cache now invalidates on re-index using created_at as a bust key. context_builder callee expansion restricted to actual call sites (identifiers followed by "(") with stop-word filtering. repositories.py updated to await generate_repo_summary directly.
+- Code Explorer DONE — GET /repositories/{id}/files (distinct file_path from chunks). getFileTree() added to api.ts. FileTree component (recursive, collapsible, extension icons). repository/[id]/code/page.tsx: fixed sidebar (280px) + full-height Monaco editor, no empty space. View Code button on RepoCard (only when indexed_status=complete). tsc clean.
 ---
 
 ## BLOCKERS

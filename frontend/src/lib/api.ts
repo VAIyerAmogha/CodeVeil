@@ -83,6 +83,10 @@ export async function getFileContent(repo_id: string, file_path: string): Promis
   return fetchWithAuth<{ content: string; language: string }>(`/repositories/${repo_id}/file?path=${encodeURIComponent(file_path)}`);
 }
 
+export async function getFileTree(repo_id: string): Promise<{ files: string[] }> {
+  return fetchWithAuth<{ files: string[] }>(`/repositories/${repo_id}/files`);
+}
+
 export async function deleteRepo(repo_id: string): Promise<void> {
   return fetchWithAuth<void>(`/repositories/${repo_id}`, {
     method: 'DELETE',
