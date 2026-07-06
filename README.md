@@ -55,8 +55,7 @@ CodeVeil uses **tree-sitter** to parse every file into its AST and extract funct
 |---|---|
 | Backend | FastAPI, Python 3.11 |
 | Frontend | Next.js 14 App Router, TypeScript |
-| Metadata | MongoDB Atlas |
-| Vectors | ChromaDB |
+| Database | MongoDB Atlas |
 | LLM | Groq — `llama-3.3-70b-versatile` (generation), `llama-3.1-8b-instant` (enrichment + classification) |
 | Embeddings | `BAAI/bge-base-en-v1.5` (768-dim) via HuggingFace Inference API |
 | AST parsing | tree-sitter (Python, JS, TS, Java) |
@@ -75,7 +74,6 @@ CodeVeil uses **tree-sitter** to parse every file into its AST and extract funct
 - Node.js 18+
 - [Groq API key](https://console.groq.com) (free tier works)
 - [MongoDB Atlas](https://mongodb.com/atlas) free cluster
-- ChromaDB running locally
 - HuggingFace account (for Inference API access used for embeddings)
 
 ### 1. Clone the repo
@@ -240,17 +238,6 @@ pytest tests/ -v
 
 ---
 
-## Roadmap
-
-- [ ] RAGAS evaluation dashboard against a hand-labeled golden dataset
-- [ ] Interactive call graph visualization for architectural queries
-- [ ] Support for more languages (Go, Rust, Ruby)
-- [ ] Private repository support via GitHub App
-- [ ] Streaming answers
-- [ ] Team workspaces
-- [ ] VS Code extension
-
----
 
 ## Contributing
 
