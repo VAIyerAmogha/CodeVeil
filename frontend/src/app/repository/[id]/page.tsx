@@ -59,6 +59,26 @@ export default function RepositoryPage() {
     return () => mql.removeEventListener('change', handler);
   }, []);
 
+  // Always start with the left panel closed when entering or restoring this page.
+  useEffect(() => {
+    setChatOpen(false);
+    setActiveTab('history');
+    setSelectedCitation(null);
+  }, [id]);
+
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setChatOpen(false);
+        setActiveTab('history');
+        setSelectedCitation(null);
+      }
+    }
+
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
+
   // IntersectionObserver: show right panel when spotlight scrolls out of view
   useEffect(() => {
     const el = spotlightRef.current;
@@ -154,13 +174,12 @@ export default function RepositoryPage() {
           // Desktop: clip via max-width so it doesn't overflow; Mobile: translate in/out
           transform: isMobile
             ? (chatOpen ? 'translateX(0)' : `translateX(-${PANEL_W}px)`)
-            : 'translateX(0)',
-          // On desktop we still need to hide it when closed — clip with left offset + overflow hidden on parent
-          // We keep width fixed and rely on main padding for the push effect on desktop.
-          // Actually: on desktop, translate too so there's no ghost space.
-          // Unified: both use translate. Main padding compensates on desktop.
+            : (chatOpen ? 'translateX(0)' : `translateX(-${PANEL_W}px)`),
         }}
-        className="fixed left-0 top-16 bottom-0 z-50 flex flex-col bg-black/70 backdrop-blur-xl border-r border-green-500/20 overflow-hidden transition-transform duration-300 ease-in-out"
+        className={[
+          'fixed left-0 top-16 bottom-0 z-50 flex flex-col bg-black/70 backdrop-blur-xl border-r border-green-500/20 overflow-hidden transition-transform duration-300 ease-in-out',
+          chatOpen ? 'pointer-events-auto' : 'pointer-events-none',
+        ].join(' ')}
       >
         <div className="flex flex-col h-full p-5 overflow-hidden" style={{ width: PANEL_W }}>
           {/* close */}
