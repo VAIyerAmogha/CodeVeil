@@ -12,7 +12,6 @@ Paste a public GitHub URL. Ask anything. Get grounded answers with exact file:li
 [![Groq](https://img.shields.io/badge/LLM-Groq-F55036?style=flat)](https://groq.com)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat)](LICENSE)
 
-![CodeVeil Demo](public/demo.png)
 
 </div>
 
@@ -26,7 +25,7 @@ CodeVeil is an AI-powered codebase intelligence platform. Point it at any public
 > *"What calls `process_payment` and what does it return?"*
 > *"Walk me through the request lifecycle."*
 
-Every answer comes with exact `file/path.py:42` citations you can click to open in a built-in code viewer.
+Every answer comes with exact `file/path.py:42` citations you can click to open in a built-in code viewer. You can also browse the full indexed repo directly through the built-in file explorer, or run an automated security risk analysis across the codebase.
 
 ---
 
@@ -41,13 +40,11 @@ CodeVeil uses **tree-sitter** to parse every file into its AST and extract funct
 ## Features
 
 - **AST-aware indexing** — tree-sitter parsing for Python, JavaScript, TypeScript, Java. Character splitting never used for supported languages.
-- **Hybrid retrieval** — BM25 keyword search + dense vector search merged and reranked by a cross-encoder. Always returns the 5 most relevant chunks.
-- **Query classification** — automatically detects lookup, explanation, or architectural queries and adapts retrieval strategy at runtime.
-- **LLM enrichment** — auto-generates one-line summaries for undocumented functions, stored as searchable metadata.
+- **Hybrid retrieval** — BM25 keyword search + dense vector search run in parallel and merged via a weighted cross-encoder rerank (dense × 0.75 + BM25 × 0.25). Always returns the top-5 most relevant chunks.
+- **Query classification** — automatically detects lookup, explanation, or architectural queries and adapts retrieval strategy (including callee-expansion context for architectural queries) at runtime.
 - **Grounded answers** — every claim in every answer has a `file:line` citation. Uncitable claims are omitted.
-- **Incremental indexing** — SHA256 cache skips unchanged files on re-index.
-- **Call flow visualization** — interactive call graph for architectural queries.
-- **RAGAS evaluation** — built-in evaluation dashboard against a hand-labeled golden dataset.
+- **Security risk analysis** — background-task-driven scan across 7 security categories, producing a weighted 0–100 score, letter grade (A–F), and per-finding severity breakdown with citations back into the code viewer. Runs asynchronously so you can navigate away while it completes.
+- **Code Explorer** — browse the full file tree of any indexed repository in a Monaco-powered viewer, independent of the Q&A flow.
 - **Citation deep dive** — click any citation to open Monaco Editor at the exact line with highlight.
 
 ---
@@ -61,15 +58,12 @@ CodeVeil uses **tree-sitter** to parse every file into its AST and extract funct
 | Metadata | MongoDB Atlas |
 | Vectors | ChromaDB |
 | LLM | Groq — `llama-3.3-70b-versatile` (generation), `llama-3.1-8b-instant` (enrichment + classification) |
-| Embeddings | `BAAI/bge-small-en-v1.5` via sentence-transformers (local, no API key) |
+| Embeddings | `BAAI/bge-base-en-v1.5` (768-dim) via HuggingFace Inference API |
 | AST parsing | tree-sitter (Python, JS, TS, Java) |
 | Keyword search | rank-bm25 |
-| Reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | Code viewer | Monaco Editor |
-| State | Zustand |
+| Auth | JWT + Google OAuth |
 | Styling | Tailwind CSS |
-
-No OpenAI. All LLM through Groq. All embeddings local.
 
 ---
 
@@ -82,6 +76,7 @@ No OpenAI. All LLM through Groq. All embeddings local.
 - [Groq API key](https://console.groq.com) (free tier works)
 - [MongoDB Atlas](https://mongodb.com/atlas) free cluster
 - ChromaDB running locally
+- HuggingFace account (for Inference API access used for embeddings)
 
 ### 1. Clone the repo
 
@@ -106,8 +101,6 @@ cp .env.example .env
 ```env
 MONGODB_URL=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/
 MONGODB_DB_NAME=codeveil
-CHROMA_HOST=localhost
-CHROMA_PORT=8001
 GROQ_API_KEY=your_groq_key_here
 GITHUB_CLIENT_ID=optional_for_higher_rate_limits
 GITHUB_CLIENT_SECRET=optional_for_higher_rate_limits
@@ -118,12 +111,6 @@ JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=60
 ```
 
-Start ChromaDB:
-
-```bash
-pip install chromadb
-chroma run --port 8001
-```
 
 Start the backend:
 
@@ -135,7 +122,7 @@ Verify:
 
 ```bash
 curl http://localhost:8000/health
-# {"mongodb":"ok","chromadb":"ok"}
+# {"mongodb":"ok"}
 ```
 
 ### 3. Frontend setup
@@ -172,18 +159,12 @@ GitHub URL
 │ AST Chunker │  tree-sitter → functions, classes, docstrings
 └──────┬──────┘
        │
-    ▼
-┌─────────────┐
-│  Enricher   │  Groq llama-3.1-8b-instant → one-line summaries
-└──────┬──────┘
        │
     ▼
 ┌─────────────────────────────────┐
 │           Indexer               │
-│  bge-small-en-v1.5 embeddings  │
-│  → ChromaDB (vectors)          │
-│  → MongoDB (metadata)          │
-│  → BM25 index (disk)           │
+│  bge-base-en-v1.5 embeddings   │
+│  (HuggingFace Inference API)   │
 └──────┬──────────────────────────┘
        │
     ▼  (on query)
@@ -194,10 +175,8 @@ GitHub URL
     ▼
 ┌────────────────────────────────┐
 │        Hybrid Retrieval        │
-│  BM25 top-20 + dense top-20   │
-│  → merge + dedupe              │
-│  → cross-encoder rerank        │
-│  → top-5 with all 3 scores    │
+│  BM25 + Dense in parallel      │
+│    
 └──────┬─────────────────────────┘
        │
     ▼
@@ -226,14 +205,13 @@ CodeVeil/
 │   │   ├── ingestion/               # clone → AST chunk → enrich → index
 │   │   ├── retrieval/               # classify → BM25 + dense → rerank → context
 │   │   ├── generation/              # responder.py — all generation Groq calls
-│   │   ├── evaluation/              # RAGAS runner + golden dataset
 │   │   ├── db/                      # MongoDB + ChromaDB singletons + models
-│   │   └── services/                # Business logic layer
+│   │   └── services/                # Business logic layer (incl. risk_analyzer)
 │   ├── tests/
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                     # Next.js App Router pages
+│   │   ├── app/                     # Next.js App Router pages (incl. code/ explorer)
 │   │   ├── components/              # UI components by feature
 │   │   ├── lib/                     # api.ts + auth.ts (all calls go through here)
 │   │   ├── hooks/                   # useIndexing, useQuery, useRepository
@@ -249,11 +227,7 @@ CodeVeil/
 
 **Why Groq?** Inference speed. `llama-3.3-70b-versatile` at Groq latency makes real-time Q&A feel instant. No OpenAI dependency.
 
-**Why local embeddings?** `BAAI/bge-small-en-v1.5` is free, fast, and strong. No API key, no rate limits, no cost per embedding.
-
-**Why two databases?** ChromaDB is purpose-built for vector similarity search. MongoDB is purpose-built for document metadata and queries. Using each for what it does best — vectors never touch MongoDB, metadata never touches ChromaDB.
-
-**Why cross-encoder reranking?** Bi-encoder retrieval (BM25 + dense) optimizes for recall. Cross-encoder reranking optimizes for precision. Running both gives you the best of each — broad candidate set, then precise top-5.
+**Why HuggingFace Inference API for embeddings?** Voyage AI's free tier is rate-limited without a payment method, and Gemini's embeddings carry a hard daily request cap. `BAAI/bge-base-en-v1.5` via HuggingFace Inference API has no card-gated rate limit on the free tier; the client handles cold-start 503s and 429 backoff.
 
 ---
 
@@ -268,6 +242,8 @@ pytest tests/ -v
 
 ## Roadmap
 
+- [ ] RAGAS evaluation dashboard against a hand-labeled golden dataset
+- [ ] Interactive call graph visualization for architectural queries
 - [ ] Support for more languages (Go, Rust, Ruby)
 - [ ] Private repository support via GitHub App
 - [ ] Streaming answers
@@ -284,12 +260,6 @@ pytest tests/ -v
 4. Push and open a PR
 
 Please read the architecture rules in `CLAUDE.md` before contributing. PRs that introduce OpenAI usage, bypass AST chunking, or add business logic to route handlers will not be merged.
-
----
-
-## License
-
-MIT — see [LICENSE](LICENSE)
 
 ---
 
