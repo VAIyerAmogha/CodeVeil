@@ -27,7 +27,7 @@ except Exception as e:
     logger.error(f"Failed to initialize AsyncGroq client: {e}")
     groq_client = None
 
-MODEL_NAME = "llama-3.3-70b-versatile"
+MODEL_NAME = settings.groq_model_generation or "openai/gpt-oss-120b"
 ANSWER_TIMEOUT_SECONDS = 45  # Overall wall-clock budget for LLM generation
 
 SYSTEM_PROMPT = """You are CodeVeil, an expert code analysis assistant.
@@ -193,7 +193,7 @@ async def generate_answer(
                     {"role": "system", "content": system_with_hint},
                     {"role": "user", "content": user_message}
                 ],
-                model=MODEL_NAME,
+                model=settings.groq_model_generation or MODEL_NAME,
                 temperature=0.1,
             ),
             timeout=ANSWER_TIMEOUT_SECONDS
@@ -244,7 +244,7 @@ async def generate_repo_summary(repo_name: str, description: str, languages: dic
                     {"role": "system", "content": "You are a concise technical writer. Summarize the codebase objectively."},
                     {"role": "user", "content": prompt}
                 ],
-                model="llama-3.1-8b-instant",
+                model=settings.groq_model_fast or "openai/gpt-oss-20b",
                 temperature=0.3,
                 max_tokens=150
             ),

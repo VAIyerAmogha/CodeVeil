@@ -17,7 +17,7 @@ elif settings.groq_api_key:
 groq_clients = [AsyncGroq(api_key=k) for k in keys]
 client_cycle = cycle(groq_clients) if groq_clients else None
 
-MODEL_NAME = "llama-3.1-8b-instant"
+MODEL_NAME = settings.groq_model_fast or "openai/gpt-oss-20b"
 
 
 async def classify_and_expand(question: str) -> tuple[str, str]:
@@ -55,7 +55,7 @@ Respond with exactly 2 lines, no labels, no punctuation other than spaces."""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            model=MODEL_NAME,
+            model=settings.groq_model_fast or MODEL_NAME,
             temperature=0.0,
             max_tokens=60,
         )

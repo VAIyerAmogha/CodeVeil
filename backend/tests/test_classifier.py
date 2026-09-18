@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 from app.retrieval import classifier
 
 
@@ -12,7 +12,7 @@ def test_classify_query_lookup():
     mock_response.choices = [mock_choice]
 
     mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     with patch("app.retrieval.classifier.client_cycle", iter([mock_client])):
         result = classifier.classify_query("where is X defined?")
@@ -29,7 +29,7 @@ def test_classify_query_explanation():
     mock_response.choices = [mock_choice]
 
     mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     with patch("app.retrieval.classifier.client_cycle", iter([mock_client])):
         result = classifier.classify_query("how does function Y work?")
@@ -46,7 +46,7 @@ def test_classify_query_architectural():
     mock_response.choices = [mock_choice]
 
     mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     with patch("app.retrieval.classifier.client_cycle", iter([mock_client])):
         result = classifier.classify_query("how do modules connect?")
@@ -63,7 +63,7 @@ def test_classify_query_unexpected_response():
     mock_response.choices = [mock_choice]
 
     mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
 
     with patch("app.retrieval.classifier.client_cycle", iter([mock_client])):
         result = classifier.classify_query("what calls X?")
@@ -73,7 +73,7 @@ def test_classify_query_unexpected_response():
 
 def test_classify_query_groq_error():
     mock_client = MagicMock()
-    mock_client.chat.completions.create.side_effect = Exception("Groq API error")
+    mock_client.chat.completions.create = AsyncMock(side_effect=Exception("Groq API error"))
 
     with patch("app.retrieval.classifier.client_cycle", iter([mock_client])):
         result = classifier.classify_query("walk me through Y")

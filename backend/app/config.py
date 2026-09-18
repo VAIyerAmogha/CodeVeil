@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     mongodb_db_name: str = "codeveil"
     groq_api_key: str = ""
     groq_api_keys: str = ""
+    groq_model_generation: str = "openai/gpt-oss-120b"
+    groq_model_fast: str = "openai/gpt-oss-20b"
     hf_token: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
